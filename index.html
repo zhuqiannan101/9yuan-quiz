@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>9元课导图形化专业刷题</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=ZCOOL+KuaiLe&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/scratchblocks@3.6.4/build/scratchblocks.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/scratchblocks@3.6.4/build/translations-all.js"></script>
+<script src="questions.js"></script>
+<script src="questions2.js"></script>
+<script src="questions3.js"></script>
+<script src="questions4.js"></script>
+<style>
+/* Layout: single centered column app — home config → one question per screen with sticky bottom controls → result report */
+:root{
+  --bg:#f3f4f7; --sheet:#ffffff; --ink:#1f2433; --muted:#646b7d; --line:#e1e4ea; --chip:#eceef3;
+  --canvas:#f9f9f9; --dot:#dcdfe5;
+  --accent:#3d4fd6; --accent-ink:#ffffff; --accent-soft:#e8eafc;
+  --ok:#1f8a4c; --ok-soft:#e3f4ea; --bad:#c23a32; --bad-soft:#fbe7e5;
+  --c-base:#7a8194; --c-looks:#9966ff; --c-sound:#cf63cf; --c-motion:#4c97ff; --c-event:#e6a800;
+  --c-control:#ffab19; --c-sense:#5cb1d6; --c-op:#59c059;
+  --f-display:"ZCOOL KuaiLe","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15171d; --sheet:#1d2028; --ink:#e8eaf0; --muted:#9aa1b2; --line:#2e323d; --chip:#262a34;
+  --canvas:#f4f5f7; --dot:#d6d9df;
+  --accent:#8e9bff; --accent-ink:#11132a; --accent-soft:#272c4d;
+  --ok:#5fd18f; --ok-soft:#183324; --bad:#ff8a80; --bad-soft:#3a1f1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171d; --sheet:#1d2028; --ink:#e8eaf0; --muted:#9aa1b2; --line:#2e323d; --chip:#262a34;
+  --canvas:#f4f5f7; --dot:#d6d9df;
+  --accent:#8e9bff; --accent-ink:#11132a; --accent-soft:#272c4d;
+  --ok:#5fd18f; --ok-soft:#183324; --bad:#ff8a80; --bad-soft:#3a1f1d; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 110px}
+.wrap{max-width:760px;margin:0 auto}
+button{font:inherit;color:inherit}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:9px 18px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.big{padding:13px 22px;font-size:16px}
+.btn:disabled{opacity:.45;cursor:default}
+.ghost{border:0;background:none;color:var(--accent);cursor:pointer;padding:4px 2px;font-size:14px}
+.muted{color:var(--muted)}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:20px}
+
+/* 首页 */
+.home-h{padding-block:36px 18px;display:grid;gap:10px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(32px,7vw,48px);line-height:1.1;margin:0;text-wrap:balance}
+.stats{display:flex;gap:22px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.stats b{display:block;font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.cfg{display:grid;gap:18px}
+.row{display:grid;gap:8px}
+.row h3{margin:0;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--line);background:var(--sheet);border-radius:999px;padding:6px 13px;cursor:pointer;font-size:14px}
+.chip i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.chip small{color:var(--muted);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{border-color:var(--c,var(--accent));background:var(--accent-soft)}
+.seg{justify-self:start;display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:12px;background:var(--chip);padding:3px;gap:2px}
+.seg button{border:0;background:none;color:var(--muted);padding:6px 14px;border-radius:9px;cursor:pointer;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.hint{font-size:13px;color:var(--muted)}
+.start{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+@media (max-width:520px){.side{grid-template-columns:minmax(0,1fr)}}
+.tile{text-align:left;cursor:pointer;display:grid;gap:4px}
+.tile b{font-size:16px}
+.tile span{font-size:13px;color:var(--muted)}
+.resume{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--accent-soft);border-color:transparent;margin-bottom:14px}
+
+/* 答题页 */
+.qbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;display:grid;gap:8px}
+.qbar-row{display:flex;align-items:center;gap:12px}
+.qbar .pos{font-variant-numeric:tabular-nums;font-weight:700}
+.qbar .pos small{color:var(--muted);font-weight:400}
+.badge{font-size:12px;border-radius:999px;padding:1px 9px;background:var(--chip);color:var(--muted)}
+.timer{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.track{height:6px;border-radius:3px;background:var(--chip);overflow:hidden}
+.track i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.qcard{display:grid;gap:14px;min-width:0}
+.qmeta{display:flex;gap:8px;align-items:center;font-size:13px}
+.mod{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--ink)}
+.mod i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.stars{color:var(--muted);letter-spacing:.05em}
+.qid{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.stem{font-size:17px;font-weight:700;margin:0;line-height:1.55}
+.fig{background-color:var(--canvas);background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:16px 16px;
+  border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:18px 28px;align-items:flex-start;overflow-x:auto}
+.script{display:grid;gap:6px;justify-items:start;min-width:0}
+.script .tag{font-size:12px;color:#5b6070;background:#fff;border:1px solid #e3e5ea;border-radius:4px;padding:0 6px}
+.blk{display:block;max-width:100%;height:auto}
+.costumes{display:flex;gap:8px;flex-wrap:wrap}
+.cos{width:74px;border:2px solid #d9dce3;border-radius:8px;background:#fff;padding:4px 4px 3px;display:grid;justify-items:center;gap:2px;position:relative;color:#575e75}
+.cos.cur{border-color:#855cd6;box-shadow:0 0 0 3px rgba(133,92,214,.25)}
+.cos .no{position:absolute;left:4px;top:2px;font-size:11px}
+.cos svg{width:40px;height:40px}
+.cos .nm{font-size:11px}
+.stage{width:min(100%,300px);height:auto;background:#fff;border:1px solid #d9dce3;border-radius:6px}
+.opts{display:grid;gap:10px}
+.opts.code{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:560px){.opts.code{grid-template-columns:minmax(0,1fr)}}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;width:100%;background:var(--sheet);
+  border:1.5px solid var(--line);border-radius:12px;padding:11px 14px;cursor:pointer;min-width:0}
+.opt:hover:not(:disabled){border-color:var(--muted)}
+.opt:disabled{cursor:default}
+.opt .k{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;background:var(--chip)}
+.opt .t{min-width:0}
+.opts.code .opt{flex-direction:column;align-items:flex-start;gap:8px}
+.opts.code .opt .t{background-color:var(--canvas);background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:16px 16px;border-radius:8px;padding:8px;width:100%;overflow-x:auto}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .k{background:var(--accent);color:var(--accent-ink)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.right .k{background:var(--ok);color:var(--sheet)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt.wrong .k{background:var(--bad);color:var(--sheet)}
+.why{border-radius:12px;padding:12px 14px;background:var(--chip);font-size:14px;display:grid;gap:4px}
+.why .res{font-weight:700}
+.why .res.ok{color:var(--ok)} .why .res.bad{color:var(--bad)}
+.why p{margin:0;color:var(--muted)}
+.why p b{color:var(--ink);margin-right:8px}
+
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--sheet);border-top:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.dock-in{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.dock-in .grow{flex:1}
+
+/* 答题卡 */
+.sheet-wrap{position:fixed;inset:0;z-index:10;background:rgba(10,12,20,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--sheet);width:min(760px,100%);max-height:80%;overflow:auto;border-radius:16px 16px 0 0;
+  padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px}
+.sheet-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sheet-h h3{margin:0;font-size:17px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--lc);border:1px solid var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:8px}
+.cell{aspect-ratio:1;max-width:100%;border:1.5px solid var(--line);border-radius:9px;background:var(--sheet);cursor:pointer;font-variant-numeric:tabular-nums;font-size:14px}
+.cell.done{background:var(--accent-soft);border-color:var(--accent)}
+.cell.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.cell.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+.cell.now{outline:2px solid var(--ink);outline-offset:1px}
+.confirm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--bad-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+
+/* 结果 */
+.res-h{padding-block:30px 16px;display:grid;gap:6px}
+.score-big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.score-big b{font-family:var(--f-display);font-weight:400;font-size:64px;line-height:1;font-variant-numeric:tabular-nums}
+.score-big span{color:var(--muted)}
+.banks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.banks{grid-template-columns:minmax(0,1fr)}}
+.bank{display:grid;gap:4px;text-align:left;cursor:pointer;background:var(--accent-soft);border:1.5px solid transparent;border-radius:14px;padding:16px 18px;min-width:0}
+.bank:hover{border-color:var(--accent)}
+.bank b{font-family:var(--f-display);font-weight:400;font-size:24px;line-height:1.2;color:var(--ink)}
+.bank span{font-size:13px;color:var(--muted)}
+.bank em{font-style:normal;font-size:13px;color:var(--accent);font-weight:700;margin-top:4px}
+/* Scratch 舞台监视器（固定浅色，和真实编辑器一致） */
+.mons{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.vmon{background:#e6f0ff;border:1px solid #c3d1e8;border-radius:4px;padding:3px 5px;display:grid;gap:4px;font-size:12px;color:#575e75}
+.vrow{display:flex;gap:8px;align-items:center}
+.vn{font-weight:700;white-space:nowrap}
+.vmon .vv{background:#ff8c1a;color:#fff;border-radius:4px;padding:0 6px;min-width:40px;text-align:center;min-height:18px;font-variant-numeric:tabular-nums}
+.vmon.large{background:#ff8c1a;border-color:#db6e00;padding:2px 12px}
+.vmon.large .vv{font-size:18px;font-weight:700;padding:0;min-width:0}
+.vslider{height:5px;border-radius:3px;background:#c3d1e8;position:relative;margin:4px 2px}
+.vslider i{position:absolute;left:13%;top:-4px;width:13px;height:13px;border-radius:50%;background:#fff;border:1px solid #9aa1b2}
+.lmon{width:132px;background:#e6f0ff;border:1px solid #c3d1e8;border-radius:4px;overflow:hidden;font-size:12px;color:#575e75}
+.lhead{background:#fff;text-align:center;font-weight:700;padding:3px 4px;border-bottom:1px solid #c3d1e8;overflow-wrap:anywhere}
+.lbody{padding:4px 4px 2px;display:grid;gap:2px}
+.lrow{display:flex;gap:4px;align-items:center}
+.li{width:16px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+.lv{flex:1;background:#fc662c;border:1px solid #e64d00;color:#fff;border-radius:3px;padding:0 5px;min-height:20px;line-height:18px;overflow-wrap:anywhere}
+.lempty{text-align:center;padding:10px 0;color:#8a90a2}
+.lfoot{background:#fff;border-top:1px solid #c3d1e8;display:flex;justify-content:space-between;padding:2px 6px;font-size:11px}
+.dlg{width:250px;max-width:100%;background:#fff;border:1px solid #d9dce3;border-radius:8px;overflow:hidden;color:#575e75;font-size:13px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.dh{background:#855cd6;color:#fff;text-align:center;font-weight:700;padding:7px}
+.db{padding:12px 14px;display:grid;gap:8px}
+.din{border:2px solid #855cd6;border-radius:4px;padding:3px 8px;color:#1f2433}
+.dsc{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px}
+.rd{display:inline-flex;gap:5px;align-items:center}
+.rd i{width:12px;height:12px;border-radius:50%;border:1.5px solid #9aa1b2;background:#fff}
+.rd.on i{border-color:#855cd6;box-shadow:inset 0 0 0 2.5px #fff;background:#855cd6}
+.dbtn{display:flex;justify-content:flex-end;gap:8px}
+.dbtn span{border:1px solid #d9dce3;border-radius:4px;padding:2px 12px}
+.dbtn .ok{background:#855cd6;border-color:#855cd6;color:#fff}
+.sb3-custom-arg{fill:#ff6680;stroke:#ff3355}
+.hbars{display:flex;align-items:flex-end;gap:6px;background:#fff;border:1px solid #d9dce3;border-radius:6px;padding:10px 12px 6px;height:170px}
+.hb{display:grid;justify-items:center;align-content:end;gap:2px;width:34px;height:100%;font-size:12px;color:#575e75;font-variant-numeric:tabular-nums}
+.hb i{display:block;width:26px;border-radius:4px 4px 0 0;background:#4c97ff}
+.hb.hi i{background:#ffab19}
+.hb.ok i{background:#59c059}
+.hb b{font-weight:700;color:#1f2433}
+.hb small{color:#9aa1b2;font-size:11px}
+.pen{width:min(100%,300px);height:auto;border:1px solid #d9dce3;border-radius:6px;display:block}
+.pen.sm{width:100%;max-width:240px}
+.opts.code .opt .t.pic{background:none;padding:0}
+.txt{width:190px;background:#fff;border:1px solid #c9ccd3;border-radius:4px;overflow:hidden;color:#1f2433}
+.txt .th{background:#f0f1f4;font-size:11px;padding:3px 8px;color:#575e75;border-bottom:1px solid #c9ccd3}
+.txt .tb{font-family:Consolas,"Courier New",monospace;font-size:13px;line-height:1.55;padding:6px 8px}
+.report{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.report{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.report div{display:grid;gap:2px;min-width:0}
+.report span{font-size:13px;color:var(--muted)}
+.report b{font-family:var(--f-display);font-weight:400;font-size:34px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.report b small{font-family:var(--f-body);font-size:15px;color:var(--muted)}
+.name{font:inherit;font-size:16px;color:var(--ink);background:var(--sheet);border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;width:min(100%,320px)}
+.name:focus{outline:none;border-color:var(--accent)}
+.err{color:var(--bad)}
+.bars{display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:5.5em minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:14px}
+.bar .tr{height:10px;border-radius:5px;background:var(--chip);overflow:hidden}
+.bar .tr i{display:block;height:100%;background:var(--c);border-radius:5px}
+.bar em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.wlist{display:grid;gap:8px}
+.witem{display:flex;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:10px 12px;cursor:pointer;width:100%}
+.witem .n{flex:none;font-variant-numeric:tabular-nums;color:var(--bad);font-weight:700;white-space:nowrap;min-width:3.6em}
+.witem .s{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+section{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin-top:22px}
+.wlist{grid-template-columns:minmax(0,1fr)}
+.witem{min-width:0}
+section > h2{margin:0;font-size:18px}
+
+/* 编程大题 */
+.big{display:grid;gap:14px}
+.big h3{margin:0;font-size:19px;font-weight:900;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.big h3 small{font-size:13px;font-weight:500;color:var(--muted)}
+.big p{margin:0}
+.big h4{margin:0;font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.06em}
+.big ol{margin:0;padding-left:1.4em;display:grid;gap:6px}
+.tasks{width:100%;border-collapse:collapse;font-size:14px}
+.tasks td{border-top:1px solid var(--line);padding:8px 6px;vertical-align:top}
+.tasks td:first-child{width:2.2em;color:var(--muted);font-variant-numeric:tabular-nums}
+.tasks td:last-child{width:4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+details{border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+details summary{cursor:pointer;font-weight:700;color:var(--accent)}
+details[open] summary{margin-bottom:10px}
+.backrow{padding-block:16px 0}
+@media (prefers-reduced-motion:no-preference){.opt,.cell{transition:border-color .12s,background-color .12s}.track i{transition:width .2s}}
+</style>
+
+<div class="wrap" id="app"></div>
+<div id="dock"></div>
+<div id="overlay"></div>
+
+<script>
+const L = 'ABCD';
+const PER = 30;
+const SKEY = 'sb-quiz-app-v1';
+// 两个题库：Day1（一阶段：外观~运算），Day2（二阶段：变量与列表）
+const BANKS = [
+  { id: 'day1', title: 'Day1 专业刷题', sub: '外观 · 声音 · 运动 · 事件 · 控制 · 侦测 · 运算', sections: SECTIONS, qs: QUESTIONS, seed: 0 },
+  { id: 'day2', title: 'Day2 专业刷题', sub: '变量 · 列表 · 列表遍历与求值', sections: SECTIONS2, qs: QUESTIONS2, seed: 1000 },
+  { id: 'day3', title: 'Day6 专业刷题', sub: '画笔 · 正多边形 · 多层循环 · 自由绘画', sections: SECTIONS3, qs: QUESTIONS3, seed: 6000 },
+  { id: 'day4', title: 'Day7 专业刷题', sub: '冒泡排序 · 交换 · 一轮冒泡 · 多轮冒泡', sections: SECTIONS4, qs: QUESTIONS4, seed: 10000 },
+];
+const BANK = Object.fromEntries(BANKS.map(b => [b.id, b]));
+const SEC = Object.fromEntries(BANKS.flatMap(b => b.sections).map(s => [s.id, s]));
+const secColor = id => SEC[id].color || `var(--c-${id})`;
+const Q = BANKS.flatMap(b => b.qs.map((q, i) => ({ ...q, id: `${b.id}-${i + 1}`, n: i + 1, bank: b.id, seed: b.seed + i + 1 })));
+const byId = Object.fromEntries(Q.map(q => [q.id, q]));
+const $ = (h) => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ── 本地存储：进度、错题本、上次设置（只存在本浏览器）──
+let store = { name: '', session: null };
+try { const s = JSON.parse(localStorage.getItem(SKEY) || 'null'); if (s) store = { ...store, ...s }; } catch (e) {}
+const save = () => { try { localStorage.setItem(SKEY, JSON.stringify(store)); } catch (e) {} };
+
+// ── 选项固定洗牌：同一道题每次顺序一致 ──
+function seeded(n) { let s = n * 9301 + 49297; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+function optOrder(q) {
+  const ix = q.o.map((_, i) => i); if (q.fix) return ix;
+  const r = seeded(q.seed + 7);
+  for (let i = ix.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ix[i], ix[j]] = [ix[j], ix[i]]; }
+  return ix;
+}
+const keyOf = q => optOrder(q).indexOf(q.a);
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// ── 积木渲染：SVG → PNG（带样式），结果缓存 ──
+const pngCache = {}; let sbCss = null;
+function blockNode(code) {
+  if (pngCache[code]) { const im = new Image(); im.className = 'blk'; im.alt = 'Scratch 积木'; Object.assign(im, pngCache[code]); return im; }
+  const doc = scratchblocks.parse(code, { languages: ['zh_cn', 'en'] });
+  const svg = scratchblocks.render(doc, { style: 'scratch3', scale: 0.75 });
+  svg.classList.add('blk');
+  requestAnimationFrame(() => toPng(svg, code));
+  return svg;
+}
+function toPng(svg, code) {
+  try {
+    const w = +svg.getAttribute('width'), h = +svg.getAttribute('height'); if (!w || !h) return;
+    if (!sbCss) sbCss = [...document.querySelectorAll('style')].map(s => s.textContent).filter(t => t.includes('.sb3-')).join('\n');
+    if (!sbCss) return;
+    const copy = svg.cloneNode(true), st = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+    st.textContent = sbCss; copy.insertBefore(st, copy.firstChild);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const k = 3, c = document.createElement('canvas'); c.width = Math.ceil(w * k); c.height = Math.ceil(h * k);
+        const g = c.getContext('2d'); g.scale(k, k); g.drawImage(img, 0, 0, w, h);
+        pngCache[code] = { src: c.toDataURL('image/png'), width: w, height: h };
+        if (svg.isConnected) { const out = new Image(); out.className = 'blk'; out.alt = 'Scratch 积木'; Object.assign(out, pngCache[code]); svg.replaceWith(out); }
+      } catch (e) {}
+    };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(copy));
+  } catch (e) {}
+}
+function scriptEl(item) {
+  const it = typeof item === 'string' ? { c: item } : item;
+  const d = $('<div class="script"></div>');
+  if (it.t) d.appendChild($(`<span class="tag">${esc(it.t)}</span>`));
+  d.appendChild(blockNode(it.c)); return d;
+}
+function costumeFig(names, cur) {
+  const shapes = ['<circle cx="20" cy="20" r="13" fill="#ff8c1a"/>',
+    '<circle cx="20" cy="22" r="13" fill="#ff8c1a"/><circle cx="14" cy="10" r="4" fill="#ff8c1a"/>',
+    '<circle cx="20" cy="20" r="13" fill="#ff8c1a"/><rect x="6" y="30" width="10" height="6" rx="3" fill="#ff8c1a"/>',
+    '<circle cx="20" cy="18" r="13" fill="#ff8c1a"/><circle cx="28" cy="32" r="4" fill="#ff8c1a"/>'];
+  return $(`<div class="costumes">${names.map((n, i) => `<div class="cos${i === cur ? ' cur' : ''}"><span class="no">${i + 1}</span><svg viewBox="0 0 40 40" aria-hidden="true">${shapes[i % 4]}<circle cx="16" cy="17" r="2.2" fill="#fff"/><circle cx="24" cy="17" r="2.2" fill="#fff"/></svg><span class="nm">${esc(n)}</span></div>`).join('')}</div>`);
+}
+function stageFig(pts) {
+  const W = 300, H = 225, sx = x => (x + 240) * W / 480, sy = y => (180 - y) * H / 360;
+  let g = '';
+  for (let x = -200; x <= 200; x += 100) g += `<line x1="${sx(x)}" y1="0" x2="${sx(x)}" y2="${H}" stroke="#eceef2"/>`;
+  for (let y = -100; y <= 100; y += 100) g += `<line x1="0" y1="${sy(y)}" x2="${W}" y2="${sy(y)}" stroke="#eceef2"/>`;
+  g += `<line x1="0" y1="${sy(0)}" x2="${W}" y2="${sy(0)}" stroke="#9aa1b2"/><line x1="${sx(0)}" y1="0" x2="${sx(0)}" y2="${H}" stroke="#9aa1b2"/>`;
+  const lab = (x, y, t, a) => `<text x="${x}" y="${y}" font-size="9" fill="#646b7d" text-anchor="${a || 'middle'}" font-family="sans-serif">${t}</text>`;
+  [-200, -100, 100, 200].forEach(x => g += lab(sx(x), sy(0) + 11, x));
+  [-100, 100].forEach(y => g += lab(sx(0) + 4, sy(y) + 3, y, 'start'));
+  g += lab(sx(0) + 4, sy(0) + 11, '0', 'start') + lab(W - 3, sy(0) - 4, 'x 240', 'end') + lab(3, sy(0) - 4, '-240', 'start');
+  g += lab(sx(0) + 4, 10, 'y 180', 'start') + lab(sx(0) + 4, H - 4, '-180', 'start');
+  pts.forEach(([x, y, n]) => {
+    g += `<circle cx="${sx(x)}" cy="${sy(y)}" r="9" fill="#ff8c1a" stroke="#c96a0c"/><circle cx="${sx(x) - 3}" cy="${sy(y) - 2}" r="1.6" fill="#fff"/><circle cx="${sx(x) + 3}" cy="${sy(y) - 2}" r="1.6" fill="#fff"/>`;
+    g += `<text x="${sx(x)}" y="${sy(y) - 13}" font-size="10" font-weight="700" fill="#1f2433" text-anchor="middle" font-family="sans-serif">${esc(n)}</text>`;
+  });
+  return $(`<svg class="stage" viewBox="0 0 ${W} ${H}" role="img" aria-label="Scratch 舞台坐标图">${g}</svg>`);
+}
+// 舞台上的变量监视器：正常显示 / 大字显示 / 滑杆
+function varsFig(vars) {
+  return $(`<div class="mons">${vars.map(v => v.mode === 'large'
+    ? `<div class="vmon large"><span class="vv">${esc(v.v)}</span></div>`
+    : `<div class="vmon"><div class="vrow"><span class="vn">${esc(v.n)}</span><span class="vv">${esc(v.v)}</span></div>${v.mode === 'slider' ? '<div class="vslider"><i></i></div>' : ''}</div>`).join('')}</div>`);
+}
+// 舞台上的列表监视器
+function listFig(l) {
+  const rows = l.items.length
+    ? l.items.map((it, i) => `<div class="lrow"><span class="li">${i + 1}</span><span class="lv">${esc(it)}</span></div>`).join('')
+    : '<div class="lempty">（空）</div>';
+  return $(`<div class="lmon"><div class="lhead">${esc(l.name)}</div><div class="lbody">${rows}</div><div class="lfoot"><span>+</span><span>长度 ${l.items.length}</span><span>=</span></div></div>`);
+}
+// 新建变量 / 新建列表 窗口（scope 为 null 表示舞台：没有作用范围选项）
+function dialogFig(d) {
+  const radio = (on, t) => `<span class="rd${on ? ' on' : ''}"><i></i>${t}</span>`;
+  return $(`<div class="dlg"><div class="dh">新建${d.kind}</div><div class="db">
+    <div class="dlab">新的${d.kind}名：</div><div class="din">${esc(d.name)}</div>
+    ${d.scope ? `<div class="dsc">${radio(d.scope === 'all', '适用于所有角色')}${radio(d.scope === 'local', '仅适用于当前角色')}</div>` : ''}
+    <div class="dbtn"><span>取消</span><span class="ok">确定</span></div></div></div>`);
+}
+// 画笔模拟：用简写指令真实算出画笔轨迹，画在 480×360 的舞台上
+// 指令：pd 落笔 / pu 抬笔 / mv N / rt N / lt N / go X Y / dir N / col #hex / hue N（Scratch 颜色值 0~100）/ chue N / sz N / stamp / rep N { … }
+function penRun(src) {
+  const tk = src.replace(/[{}]/g, ' $& ').split(/[\s;]+/).filter(Boolean);
+  const st = { x: 0, y: 0, d: 90, down: false, col: '#4c97ff', sz: 2, hue: null };
+  const segs = [], stamps = [];
+  const num = t => +t;
+  function block(i) {
+    const out = [];
+    while (i < tk.length && tk[i] !== '}') {
+      const op = tk[i++];
+      if (op === 'rep') { const n = num(tk[i++]); i++; const r = block(i); out.push({ op, n, body: r.body }); i = r.i + 1; }
+      else if (op === 'go') { out.push({ op, a: num(tk[i++]), b: num(tk[i++]) }); }
+      else if (['mv', 'rt', 'lt', 'dir', 'hue', 'chue', 'sz'].includes(op)) out.push({ op, a: num(tk[i++]) });
+      else if (op === 'col') out.push({ op, a: tk[i++] });
+      else out.push({ op });
+    }
+    return { body: out, i };
+  }
+  const hueCol = h => `hsl(${(((h % 100) + 100) % 100) * 3.6},90%,50%)`;
+  function line(x2, y2) { if (st.down) segs.push({ x1: st.x, y1: st.y, x2, y2, col: st.col, sz: st.sz }); st.x = x2; st.y = y2; }
+  function exec(body) {
+    for (const c of body) {
+      if (c.op === 'rep') { for (let k = 0; k < c.n; k++) exec(c.body); }
+      else if (c.op === 'pd') { st.down = true; }
+      else if (c.op === 'pu') st.down = false;
+      else if (c.op === 'mv') { const r = st.d * Math.PI / 180; line(st.x + c.a * Math.sin(r), st.y + c.a * Math.cos(r)); }
+      else if (c.op === 'rt') st.d += c.a;
+      else if (c.op === 'lt') st.d -= c.a;
+      else if (c.op === 'dir') st.d = c.a;
+      else if (c.op === 'go') line(c.a, c.b);
+      else if (c.op === 'col') st.col = c.a;
+      else if (c.op === 'hue') { st.hue = c.a; st.col = hueCol(st.hue); }
+      else if (c.op === 'chue') { st.hue = (st.hue == null ? 66 : st.hue) + c.a; st.col = hueCol(st.hue); }
+      else if (c.op === 'sz') st.sz = c.a;
+      else if (c.op === 'stamp') stamps.push({ x: st.x, y: st.y, d: st.d });
+    }
+  }
+  exec(block(0).body);
+  return { segs, stamps, end: st };
+}
+function spriteMark(x, y, d, ghost) {
+  const r = (d - 90) * Math.PI / 180, ex = x + 18 * Math.cos(r), ey = y - 18 * Math.sin(r);
+  return `<g opacity="${ghost ? 1 : .9}"><circle cx="${x}" cy="${y}" r="13" fill="#ff8c1a" stroke="#c96a0c" stroke-width="1.5"/>
+    <circle cx="${x - 4}" cy="${y + 3}" r="2.2" fill="#fff"/><circle cx="${x + 4}" cy="${y + 3}" r="2.2" fill="#fff"/>
+    ${ghost ? '' : `<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#c96a0c" stroke-width="2.5" stroke-linecap="round"/>`}</g>`;
+}
+function drawFig(spec, small) {
+  const s = typeof spec === 'string' ? { p: spec } : spec;
+  const { segs, stamps, end } = penRun(s.p);
+  const lines = segs.map(g => `<line x1="${g.x1.toFixed(1)}" y1="${g.y1.toFixed(1)}" x2="${g.x2.toFixed(1)}" y2="${g.y2.toFixed(1)}" stroke="${g.col}" stroke-width="${Math.max(3.5, g.sz)}" stroke-linecap="round"/>`).join('');
+  const st = stamps.map(p => spriteMark(p.x, p.y, p.d, true)).join('');
+  const sp = s.sprite === false || (small && s.sprite !== true) ? '' : spriteMark(end.x, end.y, end.d);
+  const empty = !segs.length && !stamps.length && s.note ? `<text x="0" y="0" transform="scale(1,-1)" text-anchor="middle" font-size="20" fill="#9aa1b2" font-family="sans-serif">${esc(s.note)}</text>` : '';
+  return $(`<svg class="pen${small ? ' sm' : ''}" viewBox="-240 -180 480 360" role="img" aria-label="画笔绘制效果"><rect x="-240" y="-180" width="480" height="360" fill="#fff"/><g transform="scale(1,-1)">${lines}${st}${sp}${empty}</g></svg>`);
+}
+// 柱状图：表示列表各项大小。hi=[正在比较的两项序号]，done=末尾已排好的项数
+function barsFig(s) {
+  const max = Math.max(...s.v.map(Number));
+  return $(`<div class="hbars" role="img" aria-label="列表数值柱状图">${s.v.map((v, i) => {
+    const cls = s.hi && s.hi.includes(i + 1) ? ' hi' : s.done && i >= s.v.length - s.done ? ' ok' : '';
+    return `<div class="hb${cls}"><b>${esc(v)}</b><i style="height:${Math.round(Number(v) / max * 110)}px"></i><small>${i + 1}</small></div>`;
+  }).join('')}</div>`);
+}
+// 记事本里的文本文件
+function txtFig(t) {
+  return $(`<div class="txt"><div class="th">${esc(t.name)} - 记事本</div><div class="tb">${t.lines.map(l => `<div>${esc(l) || '&nbsp;'}</div>`).join('')}</div></div>`);
+}
+
+const app = document.getElementById('app'), dock = document.getElementById('dock'), overlay = document.getElementById('overlay');
+let tick = null;
+const fmtTime = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+function clearTimer() { if (tick) { clearInterval(tick); tick = null; } }
+
+// ════════ 首页 ════════
+function home() {
+  clearTimer(); dock.innerHTML = ''; overlay.innerHTML = '';
+  store.session = null; save();
+  app.innerHTML = '';
+  app.appendChild($(`<header class="home-h">
+    <div class="eyebrow">9元新人训 · 课导专业训练</div>
+    <h1>9元课导图形化专业刷题</h1>
+  </header>`));
+  const card = $(`<div class="card cfg">
+    <div class="row"><h3><label for="nm">姓名</label></h3><input id="nm" class="name" maxlength="20" placeholder="请输入你的姓名" autocomplete="name"><div class="hint err" id="nmErr" hidden>请先输入姓名再开始答题</div></div>
+    <div class="row"><h3>选择刷题</h3><div class="banks" id="banks"></div></div>
+    <div class="hint">每次从所选题库中随机抽 ${PER} 题，每答一题马上显示解析，${PER} 题答完后显示姓名、准确率和用时。</div>
+  </div>`);
+  app.appendChild(card);
+  const nm = card.querySelector('#nm');
+  nm.value = store.name || '';
+  nm.oninput = () => { store.name = nm.value.trim(); card.querySelector('#nmErr').hidden = true; save(); };
+  BANKS.forEach(b => {
+    const pool = Q.filter(q => q.bank === b.id);
+    const btn = $(`<button class="bank"><b>${b.title}</b><span>${b.sub}</span><em>题库 ${pool.length} 题 · 随机抽 ${Math.min(PER, pool.length)} 题</em></button>`);
+    btn.onclick = () => {
+      if (!store.name) { card.querySelector('#nmErr').hidden = false; nm.focus(); return; }
+      startSession(b.id);
+    };
+    card.querySelector('#banks').appendChild(btn);
+  });
+  window.scrollTo(0, 0);
+}
+
+function startSession(bank) {
+  const ids = shuffle(Q.filter(q => q.bank === bank).map(q => q.id)).slice(0, PER);
+  store.session = { bank, ids, mode: 'practice', name: store.name, cur: 0, ans: {}, submitted: false, elapsed: 0 };
+  save(); quiz();
+}
+
+// ════════ 答题 ════════
+function quiz(review) {
+  const s = store.session; overlay.innerHTML = '';
+  clearTimer();
+  if (!s.submitted) tick = setInterval(() => { s.elapsed++; const t = document.getElementById('tm'); if (t) t.textContent = fmtTime(s.elapsed); if (s.elapsed % 10 === 0) save(); }, 1000);
+  const q = byId[s.ids[s.cur]], ord = optOrder(q), key = ord.indexOf(q.a), ch = s.ans[q.id];
+  const reveal = s.submitted || (s.mode === 'practice' && ch !== undefined);
+  const total = s.ids.length, answered = Object.keys(s.ans).length;
+  const sec = SEC[q.sec];
+  app.innerHTML = '';
+  const bar = $(`<div class="qbar">
+    <div class="qbar-row"><button class="ghost" id="back">← 首页</button>
+      <span class="pos">第 ${s.cur + 1} 题 <small>/ ${total}</small></span>
+      <span class="badge">${BANK[s.bank].title.split(' ')[0]}${s.submitted ? ' · 查看解析' : ''}</span>
+      <span class="timer">${esc(s.name || '')} · 用时 <span id="tm">${fmtTime(s.elapsed)}</span></span></div>
+    <div class="track"><i style="width:${(s.submitted ? (s.cur + 1) / total : answered / total) * 100}%"></i></div></div>`);
+  bar.querySelector('#back').onclick = () => { save(); s.submitted ? result() : home(); };
+  app.appendChild(bar);
+
+  const card = $(`<article class="card qcard">
+    <div class="qmeta"><span class="mod" style="--c:${secColor(q.sec)}"><i></i>${sec.name}</span><span class="stars">${'★'.repeat(q.lv)}</span><span class="qid">${BANK[q.bank].title.split(' ')[0]} · 题号 ${q.n}</span></div>
+    <p class="stem"></p></article>`);
+  card.querySelector('.stem').textContent = q.q;
+  if (q.code || q.fig) {
+    const f = $('<div class="fig"></div>');
+    if (q.fig && q.fig.costumes) f.appendChild(costumeFig(q.fig.costumes, q.fig.cur));
+    if (q.fig && q.fig.stage) f.appendChild(stageFig(q.fig.stage.pts));
+    if (q.fig && q.fig.vars) f.appendChild(varsFig(q.fig.vars));
+    if (q.fig && q.fig.lists) q.fig.lists.forEach(l => f.appendChild(listFig(l)));
+    if (q.fig && q.fig.dialog) f.appendChild(dialogFig(q.fig.dialog));
+    if (q.fig && q.fig.txt) f.appendChild(txtFig(q.fig.txt));
+    if (q.fig && q.fig.draw) f.appendChild(drawFig(q.fig.draw));
+    if (q.fig && q.fig.bars) f.appendChild(barsFig(q.fig.bars));
+    if (q.code) (Array.isArray(q.code) ? q.code : [q.code]).forEach(c => f.appendChild(scriptEl(c)));
+    card.appendChild(f);
+  }
+  const isCode = q.o.some(o => typeof o === 'object');
+  const box = $(`<div class="opts${isCode ? ' code' : ''}"></div>`);
+  ord.forEach((oi, k) => {
+    const o = q.o[oi];
+    const b = $(`<button class="opt" type="button"><span class="k">${L[k]}</span><span class="t"></span></button>`);
+    const t = b.querySelector('.t');
+    if (typeof o === 'object' && o.d) { t.classList.add('pic'); t.appendChild(drawFig(o.d, true)); }
+    else if (typeof o === 'object') t.appendChild(scriptEl(o.c)); else t.textContent = o;
+    if (reveal) {
+      if (k === key) b.classList.add('right'); else if (k === ch) b.classList.add('wrong');
+      b.disabled = true;
+    } else if (k === ch) b.classList.add('sel');
+    b.onclick = () => choose(k);
+    box.appendChild(b);
+  });
+  card.appendChild(box);
+  if (reveal) {
+    const ok = ch === key;
+    const w = $(`<div class="why"><div class="res ${ch === undefined ? '' : ok ? 'ok' : 'bad'}">${ch === undefined ? '未作答' : ok ? '回答正确' : `回答错误，你选了 ${L[ch]}`}</div><p><b>答案 ${L[key]}</b><span></span></p></div>`);
+    w.querySelector('span').textContent = q.w;
+    card.appendChild(w);
+  }
+  app.appendChild(card);
+
+  // 底部操作栏
+  const last = s.cur === total - 1;
+  const d = $(`<div class="dock"><div class="dock-in">
+    <button class="btn" id="prev">上一题</button>
+    <button class="btn grow" id="sheetBtn">答题卡 ${answered}/${total}</button>
+    <button class="btn primary" id="next"></button></div></div>`);
+  d.querySelector('#prev').disabled = s.cur === 0;
+  const nx = d.querySelector('#next');
+  if (s.submitted) { nx.textContent = last ? '回到成绩' : '下一题'; }
+  else if (last) { nx.textContent = '交卷看成绩'; }
+  else nx.textContent = '下一题';
+  d.querySelector('#prev').onclick = () => go(-1);
+  nx.onclick = () => {
+    if (!last) return go(1);
+    if (s.submitted) return result();
+    s.ids.every(id => s.ans[id] !== undefined) ? finish() : sheet(true);
+  };
+  d.querySelector('#sheetBtn').onclick = () => sheet(false);
+  dock.innerHTML = ''; dock.appendChild(d);
+  window.scrollTo(0, 0);
+}
+function go(dir) { const s = store.session; s.cur = Math.max(0, Math.min(s.ids.length - 1, s.cur + dir)); save(); quiz(); }
+function choose(k) {
+  const s = store.session; if (s.submitted) return;
+  const id = s.ids[s.cur];
+  if (s.mode === 'practice') {
+    if (s.ans[id] !== undefined) return;
+    s.ans[id] = k;
+  } else s.ans[id] = k;
+  save(); quiz();
+}
+function finish() {
+  const s = store.session;
+  s.submitted = true; s.finishedAt = Date.now(); save(); result();
+}
+
+function sheet(submitting) {
+  const s = store.session, total = s.ids.length;
+  const unanswered = s.ids.filter(id => s.ans[id] === undefined).length;
+  const w = $(`<div class="sheet-wrap"><div class="sheet" role="dialog" aria-label="答题卡">
+    <div class="sheet-h"><h3>答题卡</h3><button class="ghost" id="cls">关闭</button></div>
+    <div class="legend"></div><div class="grid"></div><div id="act"></div></div></div>`);
+  const showRes = s.submitted || s.mode === 'practice';
+  w.querySelector('.legend').innerHTML = showRes
+    ? `<span style="--lc:var(--ok-soft)">答对</span><span style="--lc:var(--bad-soft)">答错</span><span style="--lc:var(--sheet)">未答</span>`
+    : `<span style="--lc:var(--accent-soft)">已答</span><span style="--lc:var(--sheet)">未答</span>`;
+  const grid = w.querySelector('.grid');
+  s.ids.forEach((id, i) => {
+    const a = s.ans[id];
+    let cls = 'cell';
+    if (a !== undefined) cls += showRes ? (a === keyOf(byId[id]) ? ' ok' : ' bad') : ' done';
+    if (i === s.cur) cls += ' now';
+    const c = $(`<button class="${cls}">${i + 1}</button>`);
+    c.onclick = () => { s.cur = i; save(); quiz(); };
+    grid.appendChild(c);
+  });
+  const act = w.querySelector('#act');
+  if (!s.submitted) {
+    if (unanswered) {
+      const first = s.ids.findIndex(id => s.ans[id] === undefined);
+      const c = $(`<div class="confirm"><span style="flex:1">还有 ${unanswered} 题没做，没做的题按答错计。</span><button class="btn">去做第 ${first + 1} 题</button><button class="btn primary">直接交卷</button></div>`);
+      c.children[1].onclick = () => { s.cur = first; save(); quiz(); };
+      c.children[2].onclick = finish; act.appendChild(c);
+    } else {
+      const c = $(`<div><button class="btn primary">${PER} 题已全部做完，交卷看成绩</button></div>`);
+      c.querySelector('button').onclick = finish; act.appendChild(c);
+    }
+  }
+  w.onclick = e => { if (e.target === w) overlay.innerHTML = ''; };
+  w.querySelector('#cls').onclick = () => overlay.innerHTML = '';
+  overlay.innerHTML = ''; overlay.appendChild(w);
+}
+
+// ════════ 成绩 ════════
+function result() {
+  clearTimer(); overlay.innerHTML = '';
+  const s = store.session, total = s.ids.length;
+  const right = s.ids.filter(id => s.ans[id] === keyOf(byId[id])).length;
+  const wrong = s.ids.filter(id => s.ans[id] !== keyOf(byId[id]));
+  app.innerHTML = '';
+  const done = new Date(s.finishedAt || Date.now());
+  app.appendChild($(`<header class="res-h"><div class="eyebrow">${BANK[s.bank].title} · 成绩单 ·${done.getMonth() + 1}月${done.getDate()}日 ${String(done.getHours()).padStart(2, '0')}:${String(done.getMinutes()).padStart(2, '0')}</div></header>`));
+  app.appendChild($(`<div class="card report">
+    <div><span>姓名</span><b>${esc(s.name || '未填写')}</b></div>
+    <div><span>准确率</span><b>${Math.round(right / total * 100)}%</b></div>
+    <div><span>答对</span><b>${right}<small> / ${total}</small></b></div>
+    <div><span>用时</span><b>${fmtTime(s.elapsed)}</b></div></div>`));
+  const secs = BANK[s.bank].sections.map(sec => {
+    const ids = s.ids.filter(id => byId[id].sec === sec.id);
+    return { sec, n: ids.length, ok: ids.filter(id => s.ans[id] === keyOf(byId[id])).length };
+  }).filter(x => x.n);
+  const sb = $(`<section class="card"><h2>各模块正确率</h2><div class="bars"></div></section>`);
+  secs.forEach(x => sb.querySelector('.bars').appendChild($(`<div class="bar" style="--c:${secColor(x.sec.id)}"><span>${x.sec.name}</span><div class="tr"><i style="width:${x.ok / x.n * 100}%"></i></div><em>${x.ok}/${x.n}</em></div>`)));
+  app.appendChild(sb);
+  if (wrong.length) {
+    const wl = $(`<section><h2>错题 ${wrong.length} 道</h2><div class="wlist"></div></section>`);
+    wrong.forEach(id => {
+      const i = s.ids.indexOf(id), q = byId[id];
+      const b = $(`<button class="witem"><span class="n">第${i + 1}题</span><span class="s"></span></button>`);
+      b.querySelector('.s').textContent = (s.ans[id] === undefined ? '（未答）' : '') + q.q;
+      b.onclick = () => { s.cur = i; save(); quiz(); };
+      wl.querySelector('.wlist').appendChild(b);
+    });
+    app.appendChild(wl);
+  } else app.appendChild($(`<section class="card"><b>全部答对，太棒了！</b></section>`));
+  const d = $(`<div class="dock"><div class="dock-in">
+    <button class="btn" id="h">回首页</button><button class="btn grow" id="rv">逐题看解析</button>
+    <button class="btn primary" id="again"></button></div></div>`);
+  d.querySelector('#h').onclick = () => { store.session = null; save(); home(); };
+  d.querySelector('#rv').onclick = () => { s.cur = 0; save(); quiz(); };
+  const ag = d.querySelector('#again');
+  ag.textContent = `再来 ${PER} 题`;
+  ag.onclick = () => startSession(s.bank);
+  dock.innerHTML = ''; dock.appendChild(d);
+  window.scrollTo(0, 0);
+}
+
+// ════════ 编程大题 ════════
+function bigPage() {
+  clearTimer(); dock.innerHTML = ''; overlay.innerHTML = '';
+  app.innerHTML = '';
+  const top = $(`<div class="backrow"><button class="ghost">← 首页</button></div>`);
+  top.querySelector('button').onclick = home; app.appendChild(top);
+  app.appendChild($(`<header class="res-h"><div class="eyebrow">上机操作 · 2 题</div><h1>编程大题</h1></header>`));
+  BIG.forEach(b => {
+    const el = $(`<article class="card big"><h3>${esc(b.title)}<small>${esc(b.score)}</small></h3><p></p>
+      <h4>准备工作</h4><ol class="prep"></ol><h4>功能实现</h4><table class="tasks"><tbody></tbody></table>
+      <details><summary>参考程序</summary><div class="fig ref"></div></details><p class="hint"></p></article>`);
+    el.querySelector('p').textContent = b.desc;
+    b.prep.forEach(p => el.querySelector('.prep').appendChild($(`<li>${esc(p)}</li>`)));
+    b.tasks.forEach(([t, sc], i) => el.querySelector('tbody').appendChild($(`<table><tr><td>${i + 1}</td><td>${esc(t)}</td><td>${sc} 分</td></tr></table>`).querySelector('tr')));
+    b.ref.forEach(r => el.querySelector('.ref').appendChild(scriptEl(r)));
+    el.querySelector('.hint').textContent = b.tips;
+    app.appendChild($('<div style="height:14px"></div>')); app.appendChild(el);
+  });
+  window.scrollTo(0, 0);
+}
+
+// 键盘：A-D / 1-4 选择，←→ 翻页
+document.addEventListener('keydown', e => {
+  const s = store.session;
+  if (!s || overlay.firstChild || !document.querySelector('.qcard') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = 'abcd'.indexOf(e.key.toLowerCase()) >= 0 ? 'abcd'.indexOf(e.key.toLowerCase()) : '1234'.indexOf(e.key);
+  if (k >= 0 && k < byId[s.ids[s.cur]].o.length) { choose(k); e.preventDefault(); }
+  else if (e.key === 'ArrowRight' && s.cur < s.ids.length - 1) go(1);
+  else if (e.key === 'ArrowLeft' && s.cur > 0) go(-1);
+});
+
+home();
+</script>
+
+</html>
