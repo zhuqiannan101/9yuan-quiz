@@ -220,7 +220,7 @@ function home() {
   const c = $(`<div class="card start">
     <table class="rules"><tr><th>题型</th><th>题数</th><th>分值</th></tr><tr><td>单选题</td><td>20</td><td>每题 4 分，共 80 分（交卷后自动判分）</td></tr>
     <tr><td>编程大题</td><td>1</td><td>20 分（上机完成，考官评分）</td></tr></table>
-    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。交卷后显示得分。</div>
+    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。交卷后显示得分和每道题的讲解。</div>
     <label for="nm"><b>姓名</b></label><input id="nm" class="name" maxlength="20" placeholder="请输入你的姓名" autocomplete="name">
     <div class="err" id="er" hidden>请先输入姓名再开始</div>
     <div><button class="btn primary big" id="go">开始答题</button></div></div>`);
@@ -336,7 +336,6 @@ function finish() {
       list.appendChild(c);
     });
     app.appendChild(list);
-    app.appendChild(bigTask(P.big, true));
   }
   app.appendChild($('<section><div><button class="btn" id="again">返回首页</button></div></section>')).querySelector('#again').onclick = home;
   window.scrollTo(0, 0);
