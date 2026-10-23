@@ -287,7 +287,7 @@ function scoreCode() {
 const HOOK = 'https://open.feishu.cn/open-apis/bot/v2/hook/1b1817fa-600d-4164-9163-f93e0cf65dd3';
 // 交卷后在后台保存单选成绩（发到考官的飞书群），页面上不显示；网络失败时自动重试
 function saveScore(score, right) {
-  const text = '【成绩登记】' + st.name + '｜' + st.site + '｜' + P.title + '｜单选 ' + score + '/80（答对 ' + right + '/20）｜用时 ' + fmt(st.sec) + '\n校验：' + scoreCode();
+  const text = '【成绩登记】' + st.name + '｜' + st.site + '｜' + P.title + '｜单选 ' + score + '分';
   const body = JSON.stringify({ msg_type: 'text', content: { text } });
   let tries = 0;
   const send = () => fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true })
