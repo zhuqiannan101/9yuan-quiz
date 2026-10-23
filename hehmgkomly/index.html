@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Day1–Day2 专业考试</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=ZCOOL+KuaiLe&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/scratchblocks@3.6.4/build/scratchblocks.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/scratchblocks@3.6.4/build/translations-all.js"></script>
+<script src="paper.js"></script>
+<style>
+/* Layout: one exam sheet column; sticky bar with name/timer/progress; submit at the end */
+:root{
+  --bg:#f3f4f7; --sheet:#fff; --ink:#1f2433; --muted:#646b7d; --line:#e1e4ea; --chip:#eceef3;
+  --canvas:#f9f9f9; --dot:#dcdfe5; --accent:#3d4fd6; --accent-ink:#fff; --accent-soft:#e8eafc;
+  --ok:#1f8a4c; --ok-soft:#e3f4ea; --bad:#c23a32; --bad-soft:#fbe7e5;
+  --f-display:"ZCOOL KuaiLe","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#15171d; --sheet:#1d2028; --ink:#e8eaf0; --muted:#9aa1b2; --line:#2e323d; --chip:#262a34;
+  --canvas:#f4f5f7; --dot:#d6d9df; --accent:#8e9bff; --accent-ink:#11132a; --accent-soft:#272c4d;
+  --ok:#5fd18f; --ok-soft:#183324; --bad:#ff8a80; --bad-soft:#3a1f1d; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.65;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 60px}
+.wrap{max-width:780px;margin:0 auto}
+button{font:inherit;color:inherit}
+.btn{border:1px solid var(--line);background:var(--sheet);border-radius:10px;padding:10px 20px;cursor:pointer;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.big{padding:13px 26px;font-size:16px}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:14px;padding:20px}
+header{padding-block:34px 16px;display:grid;gap:8px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,6vw,42px);line-height:1.15;margin:0}
+.rules{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+.rules td,.rules th{border-top:1px solid var(--line);padding:7px 6px;text-align:left}
+.rules th{color:var(--muted);font-weight:500}
+.name{font:inherit;font-size:16px;color:var(--ink);background:var(--sheet);border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;width:min(100%,320px)}
+.err{color:var(--bad);font-size:13px}
+.start{display:grid;gap:12px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--line);font-size:14px}
+.bar b{font-variant-numeric:tabular-nums}
+.bar .sp{flex:1}
+section{display:grid;gap:14px;margin-top:22px}
+section>h2{margin:0;font-size:19px}
+.q{display:grid;gap:12px}
+.stem{margin:0;font-weight:700}
+.fig{background-color:var(--canvas);background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:16px 16px;border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-wrap:wrap;gap:16px 26px;overflow-x:auto}
+.script{display:grid;gap:6px;justify-items:start}
+.script .tag{font-size:12px;color:#5b6070;background:#fff;border:1px solid #e3e5ea;border-radius:4px;padding:0 6px}
+.blk{display:block;max-width:100%;height:auto}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (max-width:560px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{display:flex;gap:10px;align-items:center;text-align:left;background:var(--sheet);border:1.5px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;min-width:0}
+.opt .k{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--chip)}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft)}
+.opt.sel .k{background:var(--accent);color:var(--accent-ink)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.opt:disabled{cursor:default}
+.why{background:var(--chip);border-radius:10px;padding:10px 12px;font-size:14px;color:var(--muted)}
+.why b{color:var(--ink);margin-right:6px}
+.tasks{width:100%;border-collapse:collapse;font-size:14px}
+.tasks td,.tasks th{border-top:1px solid var(--line);padding:8px 6px;vertical-align:top;text-align:left}
+.tasks th{color:var(--muted);font-weight:500}
+.tasks td:last-child{white-space:nowrap;text-align:right}
+.confirm{background:var(--bad-soft);border-radius:10px;padding:12px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.report{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:560px){.report{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.report div{display:grid;gap:2px;min-width:0}
+.report span{font-size:13px;color:var(--muted)}
+.report b{font-family:var(--f-display);font-weight:400;font-size:32px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.note{font-size:14px;color:var(--muted)}
+.wrongs{display:flex;flex-wrap:wrap;gap:6px}
+.wrongs span{background:var(--bad-soft);color:var(--bad);border-radius:6px;padding:1px 8px;font-variant-numeric:tabular-nums}
+.hbars{display:flex;align-items:flex-end;gap:6px;background:#fff;border:1px solid #d9dce3;border-radius:6px;padding:10px 12px 6px;height:170px}
+.hb{display:grid;justify-items:center;align-content:end;gap:2px;width:34px;height:100%;font-size:12px;color:#575e75;font-variant-numeric:tabular-nums}
+.hb i{display:block;width:26px;border-radius:4px 4px 0 0;background:#4c97ff}
+.hb.hi i{background:#ffab19}.hb.ok i{background:#59c059}
+.hb b{font-weight:700;color:#1f2433}.hb small{color:#9aa1b2;font-size:11px}
+.pen{width:min(100%,300px);height:auto;border:1px solid #d9dce3;border-radius:6px;display:block}
+.pen.sm{width:100%;max-width:220px}
+.opt .t{min-width:0}
+.sb3-custom-arg{fill:#ff6680;stroke:#ff3355}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const P = window.PAPER, L = 'ABCD';
+// 考试卷的答案以编码形式存放，避免直接从源码看到
+if (P.key) { const s = atob(P.key); P.mc.forEach((q, i) => { q.a = L[(s.charCodeAt(i) ^ (i * 7 + 13)) & 3]; }); }
+const $ = h => { const t = document.createElement('template'); t.innerHTML = h.trim(); return t.content.firstChild; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const app = document.getElementById('app');
+document.title = P.title;
+let st = { name: '', ans: {}, start: 0, done: false, sec: 0 }, tick = null;
+const fmt = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+// 积木：SVG → PNG（内嵌样式）
+let css = '';
+function blocks(code) {
+  const svg = scratchblocks.render(scratchblocks.parse(code, { languages: ['zh_cn', 'en'] }), { style: 'scratch3', scale: 0.75 });
+  svg.classList.add('blk');
+  requestAnimationFrame(() => {
+    try {
+      if (!css) css = [...document.querySelectorAll('style')].map(s => s.textContent).filter(t => t.includes('.sb3-')).join('\n');
+      const w = +svg.getAttribute('width'), h = +svg.getAttribute('height'); if (!w || !css) return;
+      const c2 = svg.cloneNode(true), s2 = document.createElementNS('http://www.w3.org/2000/svg', 'style'); s2.textContent = css; c2.insertBefore(s2, c2.firstChild);
+      const img = new Image();
+      img.onload = () => { const k = 3, c = document.createElement('canvas'); c.width = w * k; c.height = h * k; const g = c.getContext('2d'); g.scale(k, k); g.drawImage(img, 0, 0, w, h);
+        const o = new Image(); o.className = 'blk'; o.width = w; o.height = h; o.alt = 'Scratch 积木'; o.src = c.toDataURL('image/png'); if (svg.isConnected) svg.replaceWith(o); };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c2));
+    } catch (e) {}
+  });
+  return svg;
+}
+function penRun(src) {
+  const tk = src.replace(/[{}]/g, ' function fig(code) { ').split(/[\s;]+/).filter(Boolean);
+  const st = { x: 0, y: 0, d: 90, down: false, col: '#4c97ff', sz: 2, hue: null };
+  const segs = [], stamps = [];
+  const num = t => +t;
+  function block(i) {
+    const out = [];
+    while (i < tk.length && tk[i] !== '}') {
+      const op = tk[i++];
+      if (op === 'rep') { const n = num(tk[i++]); i++; const r = block(i); out.push({ op, n, body: r.body }); i = r.i + 1; }
+      else if (op === 'go') { out.push({ op, a: num(tk[i++]), b: num(tk[i++]) }); }
+      else if (['mv', 'rt', 'lt', 'dir', 'hue', 'chue', 'sz'].includes(op)) out.push({ op, a: num(tk[i++]) });
+      else if (op === 'col') out.push({ op, a: tk[i++] });
+      else out.push({ op });
+    }
+    return { body: out, i };
+  }
+  const hueCol = h => `hsl(${(((h % 100) + 100) % 100) * 3.6},90%,50%)`;
+  function line(x2, y2) { if (st.down) segs.push({ x1: st.x, y1: st.y, x2, y2, col: st.col, sz: st.sz }); st.x = x2; st.y = y2; }
+  function exec(body) {
+    for (const c of body) {
+      if (c.op === 'rep') { for (let k = 0; k < c.n; k++) exec(c.body); }
+      else if (c.op === 'pd') { st.down = true; }
+      else if (c.op === 'pu') st.down = false;
+      else if (c.op === 'mv') { const r = st.d * Math.PI / 180; line(st.x + c.a * Math.sin(r), st.y + c.a * Math.cos(r)); }
+      else if (c.op === 'rt') st.d += c.a;
+      else if (c.op === 'lt') st.d -= c.a;
+      else if (c.op === 'dir') st.d = c.a;
+      else if (c.op === 'go') line(c.a, c.b);
+      else if (c.op === 'col') st.col = c.a;
+      else if (c.op === 'hue') { st.hue = c.a; st.col = hueCol(st.hue); }
+      else if (c.op === 'chue') { st.hue = (st.hue == null ? 66 : st.hue) + c.a; st.col = hueCol(st.hue); }
+      else if (c.op === 'sz') st.sz = c.a;
+      else if (c.op === 'stamp') stamps.push({ x: st.x, y: st.y, d: st.d });
+    }
+  }
+  exec(block(0).body);
+  return { segs, stamps, end: st };
+}
+function spriteMark(x, y, d, ghost) {
+  const r = (d - 90) * Math.PI / 180, ex = x + 18 * Math.cos(r), ey = y - 18 * Math.sin(r);
+  return `<g opacity="${ghost ? 1 : .9}"><circle cx="${x}" cy="${y}" r="13" fill="#ff8c1a" stroke="#c96a0c" stroke-width="1.5"/>
+    <circle cx="${x - 4}" cy="${y + 3}" r="2.2" fill="#fff"/><circle cx="${x + 4}" cy="${y + 3}" r="2.2" fill="#fff"/>
+    ${ghost ? '' : `<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#c96a0c" stroke-width="2.5" stroke-linecap="round"/>`}</g>`;
+}
+function drawFig(spec, small) {
+  const s = typeof spec === 'string' ? { p: spec } : spec;
+  const { segs, stamps, end } = penRun(s.p);
+  const lines = segs.map(g => `<line x1="${g.x1.toFixed(1)}" y1="${g.y1.toFixed(1)}" x2="${g.x2.toFixed(1)}" y2="${g.y2.toFixed(1)}" stroke="${g.col}" stroke-width="${Math.max(3.5, g.sz)}" stroke-linecap="round"/>`).join('');
+  const st = stamps.map(p => spriteMark(p.x, p.y, p.d, true)).join('');
+  const sp = s.sprite === false || (small && s.sprite !== true) ? '' : spriteMark(end.x, end.y, end.d);
+  const empty = !segs.length && !stamps.length && s.note ? `<text x="0" y="0" transform="scale(1,-1)" text-anchor="middle" font-size="20" fill="#9aa1b2" font-family="sans-serif">${esc(s.note)}</text>` : '';
+  return $(`<svg class="pen${small ? ' sm' : ''}" viewBox="-240 -180 480 360" role="img" aria-label="画笔绘制效果"><rect x="-240" y="-180" width="480" height="360" fill="#fff"/><g transform="scale(1,-1)">${lines}${st}${sp}${empty}</g></svg>`);
+}
+// 柱状图：表示列表各项大小。hi=[正在比较的两项序号]，done=末尾已排好的项数
+function barsFig(s) {
+  const max = Math.max(...s.v.map(Number));
+  return $(`<div class="hbars" role="img" aria-label="列表数值柱状图">${s.v.map((v, i) => {
+    const cls = s.hi && s.hi.includes(i + 1) ? ' hi' : s.done && i >= s.v.length - s.done ? ' ok' : '';
+    return `<div class="hb${cls}"><b>${esc(v)}</b><i style="height:${Math.round(Number(v) / max * 110)}px"></i><small>${i + 1}</small></div>`;
+  }).join('')}</div>`);
+}
+
+function qfig(q) {
+  const f = $('<div class="fig"></div>');
+  if (q.fig && q.fig.bars) f.appendChild(barsFig(q.fig.bars));
+  if (q.fig && q.fig.draw) f.appendChild(drawFig(q.fig.draw));
+  if (q.code) (Array.isArray(q.code) ? q.code : [{ c: q.code }]).forEach(it => {
+    const d = $('<div class="script"></div>'); if (it.t) d.appendChild($(`<span class="tag">${esc(it.t)}</span>`));
+    d.appendChild(blocks(it.c)); f.appendChild(d);
+  });
+  return f;
+}
+function optBody(o) {
+  const t = document.createElement('span'); t.className = 't';
+  if (o && o.d) t.appendChild(drawFig(o.d, true));
+  else if (o && o.c) t.appendChild(blocks(o.c));
+  else t.textContent = o;
+  return t;
+}
+function fig(code) {
+  const f = $('<div class="fig"></div>');
+  (Array.isArray(code) ? code : [{ c: code }]).forEach(it => {
+    const d = $('<div class="script"></div>'); if (it.t) d.appendChild($(`<span class="tag">${esc(it.t)}</span>`));
+    d.appendChild(blocks(it.c)); f.appendChild(d);
+  });
+  return f;
+}
+function bigTask(b, withRef) {
+  const s = $(`<section><h2>二、编程大题（20 分，不得低于 5 分）</h2><div class="card q"><p class="stem">${esc(b.title)}</p><p style="margin:0">${esc(b.desc)}</p>
+    <div><b>准备工作</b><ul style="margin:4px 0 0;padding-left:1.3em">${b.prep.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
+    <table class="tasks"><tr><th>步骤</th><th>要求</th><th>分值</th></tr>${b.tasks.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t[0])}</td><td>${t[1]} 分</td></tr>`).join('')}</table>
+    <p class="note" style="margin:0">请在 Scratch / 核桃编辑器中完成，保存为“姓名-${P.paper}卷.sb3”，按考官要求提交。编程大题由考官评分。</p></div></section>`);
+  if (withRef && b.ref) { const c = s.querySelector('.card'); c.appendChild($('<b>参考程序</b>')); c.appendChild(fig(b.ref));
+    if (b.rubric) c.appendChild($(`<div class="note"><b style="color:var(--ink)">评分细则</b><ul style="margin:4px 0 0;padding-left:1.3em">${b.rubric.map(r => `<li>${esc(r)}</li>`).join('')}</ul></div>`)); }
+  return s;
+}
+
+function home() {
+  app.innerHTML = '';
+  app.appendChild($(`<header><div class="eyebrow">9元新人训 · 图形化专业考试</div><h1>${esc(P.title)}</h1></header>`));
+  const c = $(`<div class="card start">
+    <table class="rules"><tr><th>题型</th><th>题数</th><th>分值</th></tr><tr><td>单选题</td><td>20</td><td>每题 4 分，共 80 分（交卷后自动判分）</td></tr>
+    <tr><td>编程大题</td><td>1</td><td>20 分（上机完成，考官评分）</td></tr></table>
+    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。${P.paper === 'A' ? '本卷为正式考试卷，交卷后只显示得分，不显示答案。' : '本卷为练习卷，交卷后显示答案和解析。'}</div>
+    <label for="nm"><b>姓名</b></label><input id="nm" class="name" maxlength="20" placeholder="请输入你的姓名" autocomplete="name">
+    <div class="err" id="er" hidden>请先输入姓名再开始</div>
+    <div><button class="btn primary big" id="go">开始答题</button></div></div>`);
+  app.appendChild(c);
+  c.querySelector('#go').onclick = () => {
+    const v = c.querySelector('#nm').value.trim(); if (!v) { c.querySelector('#er').hidden = false; return; }
+    st = { name: v, ans: {}, start: Date.now(), done: false, sec: 0 }; paper();
+  };
+}
+
+function paper() {
+  app.innerHTML = '';
+  const bar = $(`<div class="bar"><b>${esc(st.name)}</b><span>已答 <b id="cnt">0</b> / 20</span><span class="sp"></span><span>用时 <b id="tm">00:00</b></span></div>`);
+  app.appendChild(bar);
+  app.appendChild($(`<header><div class="eyebrow">${esc(P.title)}</div><h1 style="font-size:28px">一、单选题（每题 4 分）</h1></header>`));
+  const list = $('<div style="display:grid;gap:14px"></div>');
+  P.mc.forEach((q, i) => {
+    const c = $(`<article class="card q" id="q${i}"><p class="stem">${i + 1}. ${esc(q.q)}</p></article>`);
+    c.appendChild(qfig(q));
+    const box = $('<div class="opts"></div>');
+    q.o.forEach((o, k) => {
+      const b = $(`<button class="opt" type="button"><span class="k">${L[k]}</span></button>`); b.appendChild(optBody(o));
+      b.onclick = () => { if (st.done) return; st.ans[i] = k; box.querySelectorAll('.opt').forEach((x, j) => x.classList.toggle('sel', j === k)); document.getElementById('cnt').textContent = Object.keys(st.ans).length; };
+      box.appendChild(b);
+    });
+    c.appendChild(box); list.appendChild(c);
+  });
+  app.appendChild(list);
+  app.appendChild(bigTask(P.big, false));
+  const sub = $(`<section><div id="act"></div></section>`);
+  app.appendChild(sub);
+  const act = sub.querySelector('#act');
+  function showSubmit() {
+    act.innerHTML = '';
+    const b = $('<button class="btn primary big">交卷，查看单选得分</button>');
+    b.onclick = () => {
+      const left = P.mc.length - Object.keys(st.ans).length;
+      if (!left) return finish();
+      act.innerHTML = '';
+      const cf = $(`<div class="confirm"><span style="flex:1">还有 ${left} 道单选题没做，没做的按 0 分计。</span><button class="btn">回去检查</button><button class="btn primary">确认交卷</button></div>`);
+      cf.children[1].onclick = () => { const i = P.mc.findIndex((_, j) => st.ans[j] === undefined); document.getElementById('q' + i).scrollIntoView({ block: 'center' }); showSubmit(); };
+      cf.children[2].onclick = finish;
+      act.appendChild(cf);
+    };
+    act.appendChild(b);
+  }
+  showSubmit();
+  clearInterval(tick); tick = setInterval(() => { st.sec = Math.floor((Date.now() - st.start) / 1000); const t = document.getElementById('tm'); if (t) t.textContent = fmt(st.sec); }, 1000);
+  window.scrollTo(0, 0);
+}
+
+function finish() {
+  clearInterval(tick); st.done = true; st.sec = Math.floor((Date.now() - st.start) / 1000);
+  const right = P.mc.filter((q, i) => st.ans[i] === L.indexOf(q.a)).length, score = right * 4;
+  const wrong = P.mc.map((q, i) => st.ans[i] === L.indexOf(q.a) ? null : i + 1).filter(Boolean);
+  const end = new Date();
+  app.innerHTML = '';
+  app.appendChild($(`<header><div class="eyebrow">${esc(P.title)} · 成绩单 · ${end.getMonth() + 1}月${end.getDate()}日 ${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}</div><h1>交卷成功</h1></header>`));
+  app.appendChild($(`<div class="card report"><div><span>姓名</span><b>${esc(st.name)}</b></div><div><span>单选得分</span><b>${score}<small style="font-size:15px;color:var(--muted)"> / 80</small></b></div><div><span>答对</span><b>${right}<small style="font-size:15px;color:var(--muted)"> / 20</small></b></div><div><span>用时</span><b>${fmt(st.sec)}</b></div></div>`));
+  const need = Math.max(5, 70 - score);
+  app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}请截图本页发给考官。</span>
+    ${wrong.length ? `<div><span class="note">答错 / 未答的题号：</span><div class="wrongs">${wrong.map(n => `<span>${n}</span>`).join('')}</div></div>` : '<span class="note">单选题全部答对！</span>'}</section>`));
+  if (P.paper === 'B') {
+    const list = $('<section><h2>答案与解析</h2></section>');
+    P.mc.forEach((q, i) => {
+      const k = L.indexOf(q.a), ch = st.ans[i];
+      const c = $(`<article class="card q"><p class="stem">${i + 1}. ${esc(q.q)}</p></article>`);
+      c.appendChild(qfig(q));
+      const box = $('<div class="opts"></div>');
+      q.o.forEach((o, j) => { const b = $(`<button class="opt" type="button" disabled><span class="k">${L[j]}</span></button>`); b.appendChild(optBody(o)); if (j === k) b.classList.add('right'); else if (j === ch) b.classList.add('wrong'); box.appendChild(b); });
+      c.appendChild(box);
+      const w = $(`<div class="why"><b>答案 ${q.a}</b>${ch === undefined ? '（未作答）' : ch === k ? '（答对）' : `（你选了 ${L[ch]}）`}<span></span></div>`); w.lastChild.textContent = ' ' + q.w; c.appendChild(w);
+      list.appendChild(c);
+    });
+    app.appendChild(list);
+    app.appendChild(bigTask(P.big, true));
+  }
+  app.appendChild($('<section><div><button class="btn" id="again">返回首页</button></div></section>')).querySelector('#again').onclick = home;
+  window.scrollTo(0, 0);
+}
+home();
+</script>
+</body>
+</html>
