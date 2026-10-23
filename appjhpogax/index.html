@@ -194,18 +194,33 @@ function scoreCode() {
   const b64 = btoa(unescape(encodeURIComponent(payload))).replace(/[+]/g, '-').replace(/[/]/g, '_').replace(/=+$/, '');
   return 'HT1-' + b64 + '-' + fnv(payload + '|ht-walnut-2026');
 }
-function codeCard() {
+const HOOK = 'https://open.feishu.cn/open-apis/bot/v2/hook/1b1817fa-600d-4164-9163-f93e0cf65dd3';
+// 交卷后自动把单选成绩发到考官的飞书群；失败时退回到手动复制成绩码
+function registerCard(score, right) {
   const code = scoreCode();
-  const c = $(`<section class="card" style="gap:10px"><b>成绩码（必须提交）</b>
-    <span class="note">点“复制成绩码”，再${FORM_URL ? `打开 <a href="${FORM_URL}" target="_blank" rel="noopener">考试提交表</a>` : '按考官要求'}，新起一行填写姓名，卷别选「${P.paper}卷」，粘贴成绩码，并上传编程大题的 sb3 文件。成绩码里有你的作答记录，改动后会失效。</span>
-    <textarea readonly id="code" style="width:100%;min-height:72px;font:13px/1.4 Consolas,monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--canvas);color:#1f2433;word-break:break-all"></textarea>
-    <div><button class="btn primary" id="cp">复制成绩码</button> <span class="note" id="cpok"></span></div></section>`);
-  c.querySelector('#code').value = code;
-  c.querySelector('#cp').onclick = () => {
-    const ta = c.querySelector('#code'); ta.select();
-    const ok = () => c.querySelector('#cpok').textContent = '已复制';
-    if (navigator.clipboard) navigator.clipboard.writeText(code).then(ok, () => { document.execCommand('copy'); ok(); }); else { document.execCommand('copy'); ok(); }
+  const text = '【成绩登记】' + st.name + '｜' + P.title + '｜单选 ' + score + '/80（答对 ' + right + '/20）｜用时 ' + fmt(st.sec) + '\n校验：' + code;
+  const sheet = FORM_URL ? '<a href="' + FORM_URL + '" target="_blank" rel="noopener">考试提交表</a>' : '考试提交表';
+  const c = $(`<section class="card" style="gap:10px"><b id="regTitle">正在登记单选成绩……</b>
+    <span class="note" id="regNote">请稍等，不要关闭页面。</span><div id="regAct"></div></section>`);
+  const done = () => {
+    c.querySelector('#regTitle').textContent = '单选成绩已自动登记 ✓';
+    c.querySelector('#regNote').innerHTML = '下一步：打开 ' + sheet + '，新起一行，填写姓名「' + esc(st.name) + '」，卷别选「' + P.paper + '卷」，再用“插入附件”上传编程大题的 sb3 文件。';
+    c.querySelector('#regAct').innerHTML = '';
   };
+  const fail = () => {
+    c.querySelector('#regTitle').textContent = '成绩没有登记成功';
+    c.querySelector('#regNote').innerHTML = '可能是网络问题。请点“重新登记”；仍然不行，就复制下面的成绩码发给考官。';
+    const act = c.querySelector('#regAct'); act.innerHTML = '';
+    const retry = $('<button class="btn primary">重新登记</button>'); retry.onclick = send; act.appendChild(retry);
+    const ta = $('<textarea readonly style="width:100%;min-height:60px;margin-top:10px;font:13px/1.4 Consolas,monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--canvas);color:#1f2433;word-break:break-all"></textarea>');
+    ta.value = code; act.appendChild(ta);
+  };
+  function send() {
+    c.querySelector('#regTitle').textContent = '正在登记单选成绩……';
+    fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg_type: 'text', content: { text } }) })
+      .then(r => r.json()).then(j => (j && (j.code === 0 || j.StatusCode === 0)) ? done() : fail()).catch(fail);
+  }
+  send();
   return c;
 }
 function finish() {
@@ -217,9 +232,9 @@ function finish() {
   app.appendChild($(`<header><div class="eyebrow">${esc(P.title)} · 成绩单 · ${end.getMonth() + 1}月${end.getDate()}日 ${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}</div><h1>交卷成功</h1></header>`));
   app.appendChild($(`<div class="card report"><div><span>姓名</span><b>${esc(st.name)}</b></div><div><span>单选得分</span><b>${score}<small style="font-size:15px;color:var(--muted)"> / 80</small></b></div><div><span>答对</span><b>${right}<small style="font-size:15px;color:var(--muted)"> / 20</small></b></div><div><span>用时</span><b>${fmt(st.sec)}</b></div></div>`));
   const need = Math.max(5, 70 - score);
-  app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}请复制下方成绩码提交。</span>
+  app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}</span>
     </section>`));
-  app.appendChild(codeCard());
+  app.appendChild(registerCard(score, right));
   if (P.showAnswers) {
     const list = $('<section><h2>答案与解析</h2></section>');
     P.mc.forEach((q, i) => {
