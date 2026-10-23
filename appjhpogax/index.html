@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Day1–Day2 专业考试</title>
+<title>岗前专业考核</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=ZCOOL+KuaiLe&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/scratchblocks@3.6.4/build/scratchblocks.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/scratchblocks@3.6.4/build/translations-all.js"></script>
@@ -128,7 +128,7 @@ function bigTask(b, withRef) {
 
 function home() {
   app.innerHTML = '';
-  app.appendChild($(`<header><div class="eyebrow">9元新人训 · 图形化专业考试</div><h1>${esc(P.title)}</h1></header>`));
+  app.appendChild($(`<header><div class="eyebrow">9元新人训 · 图形化岗前专业考核</div><h1>${esc(P.title)}</h1></header>`));
   const c = $(`<div class="card start">
     <table class="rules"><tr><th>题型</th><th>题数</th><th>分值</th></tr><tr><td>单选题</td><td>20</td><td>每题 4 分，共 80 分（交卷后自动判分）</td></tr>
     <tr><td>编程大题</td><td>1</td><td>20 分（上机完成，考官评分）</td></tr></table>
@@ -186,7 +186,7 @@ function paper() {
 
 
 // 成绩码：姓名、卷别、每题作答、用时、交卷时间 + 校验位，考官据此复核单选成绩
-const FORM_URL = 'https://wrpnn3mat2.feishu.cn/sheets/HlXDsgYrrhHE9lt1U2vcfTlDnBc';
+const FORM_URL = 'https://wrpnn3mat2.feishu.cn/sheets/HlXDsgYrrhHE9lt1U2vcfTlDnBc?sheet=cf4f51';
 function fnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
 function scoreCode() {
   const ans = P.mc.map((_, i) => st.ans[i] === undefined ? '-' : L[st.ans[i]]).join('');
@@ -197,7 +197,7 @@ function scoreCode() {
 function codeCard() {
   const code = scoreCode();
   const c = $(`<section class="card" style="gap:10px"><b>成绩码（必须提交）</b>
-    <span class="note">点“复制成绩码”，再${FORM_URL ? `打开 <a href="${FORM_URL}" target="_blank" rel="noopener">考试提交表</a>` : '按考官要求'}，粘贴成绩码并上传编程大题的 sb3 文件。成绩码里有你的作答记录，改动后会失效。</span>
+    <span class="note">点“复制成绩码”，再${FORM_URL ? `打开 <a href="${FORM_URL}" target="_blank" rel="noopener">考试提交表</a>` : '按考官要求'}，新起一行填写姓名，卷别选「${P.paper}卷」，粘贴成绩码，并上传编程大题的 sb3 文件。成绩码里有你的作答记录，改动后会失效。</span>
     <textarea readonly id="code" style="width:100%;min-height:72px;font:13px/1.4 Consolas,monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--canvas);color:#1f2433;word-break:break-all"></textarea>
     <div><button class="btn primary" id="cp">复制成绩码</button> <span class="note" id="cpok"></span></div></section>`);
   c.querySelector('#code').value = code;
