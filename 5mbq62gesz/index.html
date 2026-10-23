@@ -134,12 +134,14 @@ function home() {
     <tr><td>编程大题</td><td>1</td><td>20 分（上机完成，考官评分）</td></tr></table>
     <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。交卷后显示得分和每道题的讲解。</div>
     <label for="nm"><b>姓名</b></label><input id="nm" class="name" maxlength="20" placeholder="请输入你的姓名" autocomplete="name">
+    <label for="zc"><b>职场</b></label><select id="zc" class="name"><option value="">请选择你的职场</option><option>汇诚</option><option>国润</option><option>长春</option><option>武汉</option></select>
     <div class="err" id="er" hidden>请先输入姓名再开始</div>
     <div><button class="btn primary big" id="go">开始答题</button></div></div>`);
   app.appendChild(c);
   c.querySelector('#go').onclick = () => {
-    const v = c.querySelector('#nm').value.trim(); if (!v) { c.querySelector('#er').hidden = false; return; }
-    st = { name: v, ans: {}, start: Date.now(), done: false, sec: 0 }; paper();
+    const v = c.querySelector('#nm').value.trim(), z = c.querySelector('#zc').value, er = c.querySelector('#er');
+    if (!v || !z) { er.textContent = !v ? '请先输入姓名再开始' : '请先选择职场再开始'; er.hidden = false; return; }
+    st = { name: v, site: z, ans: {}, start: Date.now(), done: false, sec: 0 }; paper();
   };
 }
 
@@ -197,7 +199,7 @@ function scoreCode() {
 const HOOK = 'https://open.feishu.cn/open-apis/bot/v2/hook/1b1817fa-600d-4164-9163-f93e0cf65dd3';
 // 交卷后在后台保存单选成绩（发到考官的飞书群），页面上不显示；网络失败时自动重试
 function saveScore(score, right) {
-  const text = '【成绩登记】' + st.name + '｜' + P.title + '｜单选 ' + score + '/80（答对 ' + right + '/20）｜用时 ' + fmt(st.sec) + '\n校验：' + scoreCode();
+  const text = '【成绩登记】' + st.name + '｜' + st.site + '｜' + P.title + '｜单选 ' + score + '/80（答对 ' + right + '/20）｜用时 ' + fmt(st.sec) + '\n校验：' + scoreCode();
   const body = JSON.stringify({ msg_type: 'text', content: { text } });
   let tries = 0;
   const send = () => fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, keepalive: true })
