@@ -204,7 +204,7 @@ function registerCard(score, right) {
     <span class="note" id="regNote">请稍等，不要关闭页面。</span><div id="regAct"></div></section>`);
   const done = () => {
     c.querySelector('#regTitle').textContent = '单选成绩已自动登记 ✓';
-    c.querySelector('#regNote').innerHTML = '下一步：打开 ' + sheet + '，新起一行，填写姓名「' + esc(st.name) + '」，卷别选「' + P.paper + '卷」，再用“插入附件”上传编程大题的 sb3 文件。';
+    c.querySelector('#regNote').innerHTML = '单选分数会在几分钟内自动写进 ' + sheet + '。下一步：在表格里找到姓名「' + esc(st.name) + '」、卷别「' + P.paper + '卷」那一行（还没出现就自己新起一行，填姓名和卷别），用“插入附件”把编程大题的 sb3 文件传到「作品sb3」那一格。';
     c.querySelector('#regAct').innerHTML = '';
   };
   const fail = () => {
