@@ -272,6 +272,30 @@ function paper() {
   window.scrollTo(0, 0);
 }
 
+
+// 成绩码：姓名、卷别、每题作答、用时、交卷时间 + 校验位，考官据此复核单选成绩
+const FORM_URL = '';
+function fnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
+function scoreCode() {
+  const ans = P.mc.map((_, i) => st.ans[i] === undefined ? '-' : L[st.ans[i]]).join('');
+  const payload = [P.id, st.name, ans, st.sec, Math.floor(Date.now() / 1000)].join('|');
+  const b64 = btoa(unescape(encodeURIComponent(payload))).replace(/[+]/g, '-').replace(/[/]/g, '_').replace(/=+$/, '');
+  return 'HT1-' + b64 + '-' + fnv(payload + '|ht-walnut-2026');
+}
+function codeCard() {
+  const code = scoreCode();
+  const c = $(`<section class="card" style="gap:10px"><b>成绩码（必须提交）</b>
+    <span class="note">点“复制成绩码”，再${FORM_URL ? `打开 <a href="${FORM_URL}" target="_blank" rel="noopener">考试提交表</a>` : '按考官要求'}，粘贴成绩码并上传编程大题的 sb3 文件。成绩码里有你的作答记录，改动后会失效。</span>
+    <textarea readonly id="code" style="width:100%;min-height:72px;font:13px/1.4 Consolas,monospace;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--canvas);color:#1f2433;word-break:break-all"></textarea>
+    <div><button class="btn primary" id="cp">复制成绩码</button> <span class="note" id="cpok"></span></div></section>`);
+  c.querySelector('#code').value = code;
+  c.querySelector('#cp').onclick = () => {
+    const ta = c.querySelector('#code'); ta.select();
+    const ok = () => c.querySelector('#cpok').textContent = '已复制';
+    if (navigator.clipboard) navigator.clipboard.writeText(code).then(ok, () => { document.execCommand('copy'); ok(); }); else { document.execCommand('copy'); ok(); }
+  };
+  return c;
+}
 function finish() {
   clearInterval(tick); st.done = true; st.sec = Math.floor((Date.now() - st.start) / 1000);
   const right = P.mc.filter((q, i) => st.ans[i] === L.indexOf(q.a)).length, score = right * 4;
@@ -281,8 +305,9 @@ function finish() {
   app.appendChild($(`<header><div class="eyebrow">${esc(P.title)} · 成绩单 · ${end.getMonth() + 1}月${end.getDate()}日 ${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}</div><h1>交卷成功</h1></header>`));
   app.appendChild($(`<div class="card report"><div><span>姓名</span><b>${esc(st.name)}</b></div><div><span>单选得分</span><b>${score}<small style="font-size:15px;color:var(--muted)"> / 80</small></b></div><div><span>答对</span><b>${right}<small style="font-size:15px;color:var(--muted)"> / 20</small></b></div><div><span>用时</span><b>${fmt(st.sec)}</b></div></div>`));
   const need = Math.max(5, 70 - score);
-  app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}请截图本页发给考官。</span>
+  app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}请复制下方成绩码提交。</span>
     </section>`));
+  app.appendChild(codeCard());
   if (P.showAnswers) {
     const list = $('<section><h2>答案与解析</h2></section>');
     P.mc.forEach((q, i) => {
