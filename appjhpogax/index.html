@@ -132,7 +132,7 @@ function home() {
   const c = $(`<div class="card start">
     <table class="rules"><tr><th>题型</th><th>题数</th><th>分值</th></tr><tr><td>单选题</td><td>20</td><td>每题 4 分，共 80 分（交卷后自动判分）</td></tr>
     <tr><td>编程大题</td><td>1</td><td>20 分（上机完成，考官评分）</td></tr></table>
-    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。${P.paper === 'A' ? '本卷为正式考试卷，交卷后只显示得分，不显示答案。' : '本卷为练习卷，交卷后显示答案和解析。'}</div>
+    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。交卷后显示得分。</div>
     <label for="nm"><b>姓名</b></label><input id="nm" class="name" maxlength="20" placeholder="请输入你的姓名" autocomplete="name">
     <div class="err" id="er" hidden>请先输入姓名再开始</div>
     <div><button class="btn primary big" id="go">开始答题</button></div></div>`);
@@ -194,8 +194,8 @@ function finish() {
   app.appendChild($(`<div class="card report"><div><span>姓名</span><b>${esc(st.name)}</b></div><div><span>单选得分</span><b>${score}<small style="font-size:15px;color:var(--muted)"> / 80</small></b></div><div><span>答对</span><b>${right}<small style="font-size:15px;color:var(--muted)"> / 20</small></b></div><div><span>用时</span><b>${fmt(st.sec)}</b></div></div>`));
   const need = Math.max(5, 70 - score);
   app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}请截图本页发给考官。</span>
-    ${wrong.length ? `<div><span class="note">答错 / 未答的题号：</span><div class="wrongs">${wrong.map(n => `<span>${n}</span>`).join('')}</div></div>` : '<span class="note">单选题全部答对！</span>'}</section>`));
-  if (P.paper === 'B') {
+    </section>`));
+  if (P.showAnswers) {
     const list = $('<section><h2>答案与解析</h2></section>');
     P.mc.forEach((q, i) => {
       const k = L.indexOf(q.a), ch = st.ans[i];
