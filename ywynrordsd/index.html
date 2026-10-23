@@ -274,7 +274,7 @@ function paper() {
 
 
 // 成绩码：姓名、卷别、每题作答、用时、交卷时间 + 校验位，考官据此复核单选成绩
-const FORM_URL = '';
+const FORM_URL = 'https://wrpnn3mat2.feishu.cn/sheets/HlXDsgYrrhHE9lt1U2vcfTlDnBc';
 function fnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36); }
 function scoreCode() {
   const ans = P.mc.map((_, i) => st.ans[i] === undefined ? '-' : L[st.ans[i]]).join('');
