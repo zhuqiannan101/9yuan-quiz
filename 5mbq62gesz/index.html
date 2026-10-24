@@ -234,8 +234,11 @@ function bigCard() {
       let bin = ''; fflate.gzipSync(pj, { level: 9 }).forEach(b => { bin += String.fromCharCode(b); });
       const b64 = btoa(bin);
       if (b64.length > 17000) return say('作品太大，提交不了，请联系考官。'), (btn.disabled = false);
-      const text = '【大题提交】' + st.name + '｜' + st.site + '｜' + P.title + '｜' + file.name + '\n' + b64;
-      const r = await fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg_type: 'text', content: { text } }) });
+      const title = '【大题提交】' + st.name + '｜' + st.site + '｜' + P.title + '｜' + file.name;
+      const card = { schema: '2.0', header: { title: { tag: 'plain_text', content: title }, template: 'blue' },
+        body: { elements: [{ tag: 'collapsible_panel', expanded: false, header: { title: { tag: 'plain_text', content: '作品程序（批改用，不用点开）' } },
+          elements: [{ tag: 'div', text: { tag: 'plain_text', content: b64 } }] }] } };
+      const r = await fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg_type: 'interactive', card }) });
       const j = await r.json();
       if (!(j && (j.code === 0 || j.StatusCode === 0))) throw new Error('send');
       say('提交成功 ✓（' + file.name + '）。考官会统一批改，不用再做别的。', true);
