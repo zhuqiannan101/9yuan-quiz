@@ -121,7 +121,7 @@ function bigTask(b, withRef) {
   const s = $(`<section><h2>二、编程大题（20 分，不得低于 5 分）</h2><div class="card q"><p class="stem">${esc(b.title)}</p><p style="margin:0">${esc(b.desc)}</p>
     <div><b>准备工作</b><ul style="margin:4px 0 0;padding-left:1.3em">${b.prep.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
     <table class="tasks"><tr><th>步骤</th><th>要求</th><th>分值</th></tr>${b.tasks.map((t, i) => `<tr><td>${i + 1}</td><td>${esc(t[0])}</td><td>${t[1]} 分</td></tr>`).join('')}</table>
-    <p class="note" style="margin:0">请在 Scratch / 核桃编辑器中完成，保存为“姓名-${P.paper}卷.sb3”，按考官要求提交。编程大题由考官评分。</p></div></section>`);
+    <p class="note" style="margin:0">请在 Scratch / 核桃编辑器中完成，保存为“姓名-${P.paper}卷.sb3”，完成后在下方「编程大题提交处」上传。编程大题由考官评分。</p></div></section>`);
   if (withRef && b.ref) { const c = s.querySelector('.card'); c.appendChild($('<b>参考程序</b>')); c.appendChild(fig(b.ref));
     if (b.rubric) c.appendChild($(`<div class="note"><b style="color:var(--ink)">评分细则</b><ul style="margin:4px 0 0;padding-left:1.3em">${b.rubric.map(r => `<li>${esc(r)}</li>`).join('')}</ul></div>`)); }
   return s;
@@ -133,7 +133,7 @@ function home() {
   const c = $(`<div class="card start">
     <table class="rules"><tr><th>题型</th><th>题数</th><th>分值</th></tr><tr><td>单选题</td><td>20</td><td>每题 4 分，共 80 分（交卷后自动判分）</td></tr>
     <tr><td>编程大题</td><td>1</td><td>20 分（上机完成，考官评分）</td></tr></table>
-    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。交卷后显示得分和每道题的讲解。</div>
+    <div class="note"><b style="color:var(--ink)">通过标准</b>：总分 ≥ 70 分，且编程大题 ≥ 5 分。建议用时 60 分钟。先做 20 道单选，交卷后显示单选得分和编程大题，在 Scratch 里完成大题后，回到本页上传作品。</div>
     <label for="nm"><b>姓名</b></label><input id="nm" class="name" maxlength="20" placeholder="请输入你的姓名" autocomplete="name">
     <label for="zc"><b>职场</b></label><select id="zc" class="name"><option value="">请选择你的职场</option><option>汇诚</option><option>国润</option><option>长春</option><option>武汉</option></select>
     <div class="err" id="er" hidden>请先输入姓名再开始</div>
@@ -164,13 +164,12 @@ function paper() {
     c.appendChild(box); list.appendChild(c);
   });
   app.appendChild(list);
-  app.appendChild(bigTask(P.big, false));
   const sub = $(`<section><div id="act"></div></section>`);
   app.appendChild(sub);
   const act = sub.querySelector('#act');
   function showSubmit() {
     act.innerHTML = '';
-    const b = $('<button class="btn primary big">交卷，查看单选得分</button>');
+    const b = $('<button class="btn primary big">交卷（交卷后做编程大题）</button>');
     b.onclick = () => {
       const left = P.mc.length - Object.keys(st.ans).length;
       if (!left) return finish();
@@ -211,7 +210,7 @@ function saveScore(score, right) {
 // 编程大题提交：从 sb3 里取出程序（project.json），压缩后发到考官的飞书群，考官登记时写进表格
 function bigCard() {
   const c = $(`<section class="card" style="gap:10px"><h2 style="margin:0">编程大题提交处</h2>
-    <span class="note">在 Scratch 里完成编程大题后，点「文件 → 保存到你的电脑」得到 .sb3 文件，再在这里提交。传错了可以重新提交，以最后一次为准。</span>
+    <span class="note">按上面的要求在 Scratch 里完成编程大题，点「文件 → 保存到你的电脑」得到 .sb3 文件，再在这里提交。中途关掉页面也没关系，用同一台电脑、同一个浏览器重新打开考试链接，会直接回到这里。传错了可以重新提交，以最后一次为准。</span>
     <label class="btn" style="justify-self:start;cursor:pointer">选择 sb3 文件<input type="file" accept=".sb3" hidden></label>
     <span class="note" id="bf" style="color:var(--ink)"></span>
     <div><button class="btn primary" id="bs" disabled>提交大题作品</button></div>
@@ -248,18 +247,24 @@ function bigCard() {
   return c;
 }
 
+const KEEP = 'ht-exam-done-' + P.id;
 function finish() {
-  clearInterval(tick); st.done = true; st.sec = Math.floor((Date.now() - st.start) / 1000);
+  clearInterval(tick); st.done = true; st.sec = Math.floor((Date.now() - st.start) / 1000); st.end = Date.now();
+  try { localStorage.setItem(KEEP, JSON.stringify(st)); } catch (e) { /* 存不了也不影响交卷 */ }
+  showResult(true);
+}
+function showResult(fresh) {
   const right = P.mc.filter((q, i) => st.ans[i] === L.indexOf(q.a)).length, score = right * 4;
   const wrong = P.mc.map((q, i) => st.ans[i] === L.indexOf(q.a) ? null : i + 1).filter(Boolean);
-  const end = new Date();
+  const end = new Date(st.end || Date.now());
   app.innerHTML = '';
   app.appendChild($(`<header><div class="eyebrow">${esc(P.title)} · 成绩单 · ${end.getMonth() + 1}月${end.getDate()}日 ${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}</div><h1>交卷成功</h1></header>`));
   app.appendChild($(`<div class="card report"><div><span>姓名</span><b>${esc(st.name)}</b></div><div><span>单选得分</span><b>${score}<small style="font-size:15px;color:var(--muted)"> / 80</small></b></div><div><span>答对</span><b>${right}<small style="font-size:15px;color:var(--muted)"> / 20</small></b></div><div><span>用时</span><b>${fmt(st.sec)}</b></div></div>`));
   const need = Math.max(5, 70 - score);
   app.appendChild($(`<section class="card" style="gap:8px"><b>总分 = 单选 ${score} 分 + 编程大题得分（考官评分）</b><span class="note">${need > 20 ? '单选得分不足 50 分，即使编程大题满分，总分也达不到 70 分。' : `编程大题至少需要 ${need} 分才能通过（总分 ≥ 70 且大题 ≥ 5）。`}</span>
     </section>`));
-  saveScore(score, right);
+  if (fresh) saveScore(score, right);
+  app.appendChild(bigTask(P.big, false));
   app.appendChild(bigCard());
   if (P.showAnswers) {
     const list = $('<section><h2>答案与解析</h2></section>');
@@ -275,10 +280,18 @@ function finish() {
     });
     app.appendChild(list);
   }
-  app.appendChild($('<section><div><button class="btn" id="again">返回首页</button></div></section>')).querySelector('#again').onclick = home;
+  app.appendChild($('<section><div><button class="btn" id="again">返回首页</button></div></section>')).querySelector('#again').onclick = () => {
+    try { localStorage.removeItem(KEEP); } catch (e) { /* 忽略 */ }
+    home();
+  };
   window.scrollTo(0, 0);
 }
-home();
+// 本机已经交过卷（还在提交大题的阶段）：直接回到成绩单
+(() => {
+  let kept = null;
+  try { kept = JSON.parse(localStorage.getItem(KEEP) || 'null'); } catch (e) { kept = null; }
+  if (kept && kept.done && Date.now() - (kept.end || 0) < 12 * 3600 * 1000) { st = kept; showResult(false); } else home();
+})();
 </script>
 </body>
 </html>
