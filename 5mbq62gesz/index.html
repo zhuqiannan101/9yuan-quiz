@@ -208,6 +208,35 @@ function saveScore(score, right) {
   send();
 }
 // 编程大题提交：从 sb3 里取出程序（project.json），压缩后发到考官的飞书群，考官登记时写进表格
+// 从 sb3（zip）里取出 project.json：先用 fflate；不行再按 zip 目录逐个文件找，用浏览器自带的解压（兼容其他编辑器保存的 sb3）
+async function readProjectJson(bytes) {
+  try {
+    const z = fflate.unzipSync(bytes, { filter: f => /(^|\/)project\.json$/.test(f.name) });
+    const k = Object.keys(z)[0];
+    if (k) return z[k];
+  } catch (e) { /* 换下面的办法 */ }
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let e = bytes.length - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('不是 zip 格式的 sb3');
+  let p = dv.getUint32(e + 16, true);
+  for (let i = 0, n = dv.getUint16(e + 10, true); i < n; i++) {
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lo = dv.getUint32(p + 42, true);
+    const name = fflate.strFromU8(bytes.subarray(p + 46, p + 46 + nl));
+    if (/(^|\/)project\.json$/.test(name)) {
+      const start = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true);
+      const data = bytes.subarray(start, start + csize);
+      if (method === 0) return data;
+      if (method !== 8) throw new Error('不支持的压缩方式 ' + method);
+      const s = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(s).arrayBuffer());
+    }
+    p += 46 + nl + xl + cl;
+  }
+  throw new Error('sb3 里没有 project.json');
+}
+
 function bigCard() {
   const c = $(`<section class="card" style="gap:10px"><h2 style="margin:0">编程大题提交处</h2>
     <span class="note">按上面的要求在 Scratch 里完成编程大题，点「文件 → 保存到你的电脑」得到 .sb3 文件，再在这里提交。中途关掉页面也没关系，用同一台电脑、同一个浏览器重新打开考试链接，会直接回到这里。传错了可以重新提交，以最后一次为准。</span>
@@ -227,23 +256,34 @@ function bigCard() {
     if (!file) return;
     if (!/\.sb3$/i.test(file.name)) return say('只能提交 Scratch 作品文件（.sb3）');
     btn.disabled = true; say('正在提交……', true); msg.style.color = '';
+    let step = '读取文件';
     try {
-      const zip = fflate.unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: f => f.name === 'project.json' });
-      const pj = zip['project.json'];
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      step = '解压作品';
+      const pj = await readProjectJson(bytes);
+      step = '检查作品';
       if (!pj || !JSON.parse(fflate.strFromU8(pj)).targets) throw new Error('bad');
+      step = '压缩作品';
       let bin = ''; fflate.gzipSync(pj, { level: 9 }).forEach(b => { bin += String.fromCharCode(b); });
       const b64 = btoa(bin);
-      if (b64.length > 17000) return say('作品太大，提交不了，请联系考官。'), (btn.disabled = false);
+      if (b64.length > 17000) return say('作品太大，提交不了，请联系考官。（' + b64.length + '）'), (btn.disabled = false);
       const title = '【大题提交】' + st.name + '｜' + st.site + '｜' + P.title + '｜' + file.name;
       const card = { schema: '2.0', header: { title: { tag: 'plain_text', content: title }, template: 'blue' },
         body: { elements: [{ tag: 'collapsible_panel', expanded: false, header: { title: { tag: 'plain_text', content: '作品程序（批改用，不用点开）' } },
           elements: [{ tag: 'div', text: { tag: 'plain_text', content: b64 } }] }] } };
-      const r = await fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg_type: 'interactive', card }) });
-      const j = await r.json();
-      if (!(j && (j.code === 0 || j.StatusCode === 0))) throw new Error('send');
+      step = '发送';
+      let j = null;
+      for (let t = 0; t < 2 && !(j && (j.code === 0 || j.StatusCode === 0)); t++) {
+        if (t) await new Promise(r => setTimeout(r, 1500));
+        const r = await fetch(HOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ msg_type: 'interactive', card }) });
+        j = await r.json();
+      }
+      if (!(j && (j.code === 0 || j.StatusCode === 0))) throw new Error('机器人返回 ' + (j && (j.code || j.StatusCode)) + ' ' + (j && (j.msg || j.StatusMessage) || ''));
       say('提交成功 ✓（' + file.name + '）。考官会统一批改，不用再做别的。', true);
     } catch (e) {
-      say(e && e.message === 'bad' ? '这个文件打不开，请确认是从 Scratch 保存的 .sb3 作品。' : '提交没有成功，请检查网络后再点一次。');
+      const why = (e && e.message) || String(e);
+      say(why === 'bad' ? '这个文件打不开，请确认是从 Scratch 保存的 .sb3 作品。'
+        : '提交没有成功，请再点一次；还是不行，请把下面这行截图发给考官：' + step + '：' + why.slice(0, 120));
     }
     btn.disabled = false;
   };
