@@ -256,7 +256,7 @@ const SKEY = 'sb-quiz-app-v1';
 const BANKS = [
   { id: 'day1', title: 'Day1 专业刷题', sub: '外观 · 声音 · 运动 · 事件 · 控制 · 侦测 · 运算', sections: SECTIONS, qs: QUESTIONS, seed: 0 },
   { id: 'day2', title: 'Day2 专业刷题', sub: '变量 · 列表 · 列表遍历与求值', sections: SECTIONS2, qs: QUESTIONS2, seed: 1000 },
-  { id: 'day3', title: 'Day6 专业刷题', sub: '画笔 · 正多边形 · 多层循环 · 自由绘画', sections: SECTIONS3, qs: QUESTIONS3, seed: 6000 },
+  { id: 'day3', title: 'Day6 专业刷题', sub: '画笔 · 正多边形 · 多层循环 · 自由绘画 · 自定义代码块', sections: SECTIONS3, qs: QUESTIONS3, seed: 6000 },
   { id: 'day4', title: 'Day7 专业刷题', sub: '冒泡排序 · 交换 · 一轮冒泡 · 多轮冒泡', sections: SECTIONS4, qs: QUESTIONS4, seed: 10000 },
 ];
 const BANK = Object.fromEntries(BANKS.map(b => [b.id, b]));
@@ -278,6 +278,8 @@ function optOrder(q) {
   const ix = q.o.map((_, i) => i); if (q.fix) return ix;
   const r = seeded(q.seed + 7);
   for (let i = ix.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [ix[i], ix[j]] = [ix[j], ix[i]]; }
+  // pos：指定正确答案显示在第几个（0=A … 3=D），用来让一批题的答案在 ABCD 间分布均匀
+  if (q.pos != null) { const cur = ix.indexOf(q.a); [ix[cur], ix[q.pos]] = [ix[q.pos], ix[cur]]; }
   return ix;
 }
 const keyOf = q => optOrder(q).indexOf(q.a);
