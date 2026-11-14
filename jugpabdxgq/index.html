@@ -272,7 +272,7 @@ au.addEventListener('pause', () => {
   report({event:'暂停', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:pauseWhy});
 });
 au.addEventListener('play', () => { playing = true; updPlayBtn(); const v=$('#veil'); if(v) v.hidden = true; endPause(true); });
-au.addEventListener('waiting', () => { if (!au.paused && stallAt == null) stallAt = Date.now(); });
+au.addEventListener('waiting', () => { if (!au.paused && au.currentTime > 0.5 && stallAt == null) stallAt = Date.now(); });  // 每页开头的首次加载不算卡顿
 au.addEventListener('playing', endStall);
 function fmt(t){ t = Math.max(0, Math.floor(t)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
 function play(){ au.playbackRate = rate; au.play().catch(() => { const v=$('#veil'); if(v) v.hidden=false; }); }
