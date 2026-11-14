@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}img{max-width:100%}</style></head><body>
+<title>核桃课程体系</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: 单列课堂播放器——上方阶段闯关条，中间 PPT 原图，下方字幕与控制；小测/成绩为同宽卡片 */
+:root{
+  --bg:#f7f4f0; --surface:#ffffff; --ink:#24201c; --muted:#76695e; --line:#e7ddd3;
+  --brand:#f06a1d; --brand-soft:#fde9dc; --brand-ink:#b84a0c;
+  --ok:#1f8a5b; --ok-soft:#e1f3ea; --bad:#c8402f; --bad-soft:#fbe5e1;
+  --sub-bg:#2a221c; --sub-fg:#fff7ef;
+  --f-body:"PingFang SC","Microsoft YaHei","Noto Sans SC","Hiragino Sans GB",system-ui,sans-serif;
+  --f-num:"Space Grotesk","DIN Alternate","Segoe UI",var(--f-body);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#17130f; --surface:#221c17; --ink:#f2ebe4; --muted:#ab9d90; --line:#3a3029;
+  --brand:#ff7d33; --brand-soft:#3c2618; --brand-ink:#ffb07f;
+  --ok:#4fc28c; --ok-soft:#173327; --bad:#ef7a69; --bad-soft:#3a1d18;
+  --sub-bg:#0e0b09; --sub-fg:#fff7ef; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#17130f; --surface:#221c17; --ink:#f2ebe4; --muted:#ab9d90; --line:#3a3029;
+  --brand:#ff7d33; --brand-soft:#3c2618; --brand-ink:#ffb07f;
+  --ok:#4fc28c; --ok-soft:#173327; --bad:#ef7a69; --bad-soft:#3a1d18;
+  --sub-bg:#0e0b09; --sub-fg:#fff7ef; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{margin:0;text-wrap:balance;line-height:1.3}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+button:focus-visible,input:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+button:disabled{cursor:not-allowed;opacity:.45}
+.btn{background:var(--brand);color:#fff;padding:10px 18px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.soft{background:var(--brand-soft);color:var(--brand-ink)}
+.muted{color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
+
+/* 顶栏 */
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{font-size:20px}
+.brand .tag{font-size:12px;letter-spacing:.08em;color:var(--brand-ink);background:var(--brand-soft);padding:2px 8px;border-radius:99px}
+.who{font-size:13px;color:var(--muted)}
+
+/* 闭环口号 */
+.loop{display:flex;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--muted)}
+.loop span{white-space:nowrap}
+.loop span.on{color:var(--brand-ink);font-weight:700}
+.loop i{font-style:normal;opacity:.5}
+
+/* 关卡图 */
+.map{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.node{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;color:var(--ink);display:flex;flex-direction:column;gap:2px;min-width:0}
+.node .k{font-size:11px;letter-spacing:.08em;color:var(--muted)}
+.node .t{font-weight:700;font-size:14px}
+.node .s{font-size:12px;color:var(--muted)}
+.node.cur{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+.node.pass .s{color:var(--ok);font-weight:600}
+.node.lock{opacity:.5}
+@media (max-width:640px){.map{grid-template-columns:repeat(2,minmax(0,1fr))}.node:last-child{grid-column:1/-1}}
+
+/* 播放器 */
+.stage-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.stage-head h2{font-size:18px}
+.slide{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:16/9;max-width:100%}
+.slide img{display:block;width:100%;height:100%;object-fit:contain}
+.veil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,14,10,.55)}
+.veil button{font-size:17px;padding:14px 26px}
+.sub{background:var(--sub-bg);color:var(--sub-fg);border-radius:12px;padding:14px 18px;min-height:76px;font-size:17px;line-height:1.7;white-space:pre-wrap}
+.bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.prog{flex:1 1 200px;height:6px;background:var(--line);border-radius:99px;overflow:hidden;min-width:120px}
+.prog div{height:100%;background:var(--brand);width:0}
+.time{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted)}
+.dots{display:flex;flex-wrap:wrap;gap:6px}
+.dot{font-family:var(--f-num);font-size:12px;padding:4px 8px;border-radius:8px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.dot.heard{color:var(--ink)}
+.dot.now{background:var(--brand);border-color:var(--brand);color:#fff}
+.dot.q::after{content:" ✎"}
+details.full summary{cursor:pointer;color:var(--muted);font-size:13px}
+details.full p{white-space:pre-wrap;margin:8px 0 0}
+.speed{display:flex;gap:4px}
+.speed button{padding:6px 10px;font-size:13px;background:var(--surface);border:1px solid var(--line);color:var(--ink)}
+.speed button.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand-ink)}
+
+/* 弹题 */
+.modal{position:fixed;inset:0;background:rgba(20,14,10,.6);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal .card{max-width:560px;width:100%;max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:12px;letter-spacing:.1em;color:var(--brand-ink);font-weight:700}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;background:var(--bg);border:1px solid var(--line);padding:10px 12px;color:var(--ink)}
+.opt b{font-family:var(--f-num);color:var(--brand-ink);min-width:1.2em}
+.opt.sel{border-color:var(--brand);background:var(--brand-soft)}
+.opt.right{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.fb{border-radius:10px;padding:10px 12px;font-weight:600}
+.fb.ok{background:var(--ok-soft);color:var(--ok)}
+.fb.no{background:var(--bad-soft);color:var(--bad)}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+
+/* 小测 */
+.quiz{display:flex;flex-direction:column;gap:14px}
+.qitem{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.qitem:first-of-type{border-top:0;padding-top:0}
+.qitem .qt{font-weight:600}
+.qitem .qn{font-family:var(--f-num);color:var(--brand-ink);margin-right:6px}
+.score{font-family:var(--f-num);font-size:44px;font-weight:700;line-height:1}
+.rule{font-size:13px;color:var(--muted)}
+
+/* 首页 */
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:center}
+.hero img{border-radius:12px;width:100%}
+.hero form{display:flex;flex-direction:column;gap:10px}
+.hero input{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+@media (max-width:720px){.hero{grid-template-columns:1fr}}
+.steps{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px;color:var(--muted);font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+td.n{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.tbl{overflow-x:auto}
+@media (prefers-reduced-motion:no-preference){.prog div{transition:width .25s linear}}
+</style>
+
+<div class="wrap" id="app"></div>
+<audio id="au" preload="auto"></audio>
+
+<script>
+const DATA = {"pages":[{"row":3,"stage":"课程体系·阶段1","p":"P01","topic":"","script":"上节课咱们学习了工作的全流程，这节课呢给大家想讲一下咱们核桃的课程体系。那我想讲之前先来提问一下在座的各位老师，之前有接触过教培这个行业的吗？","interact":{"q":"之前曾接触过什么类型的教培工作？","at":"P01","options":["学科类","思维类","兴趣类","没接触过"],"answer":-1,"vote":true,"wrong":"直接继续"}},{"row":4,"stage":"课程体系·阶段1","p":"P02","topic":"","script":"那接触过教培行业的老师大家觉得在续报的过程中，还有平时上课的过程中，老师们觉得是产品本身厉害更重要一点，还是说我们自己专业能力足够，这个更重要？","interact":{"q":"产品和个人能力哪个更重要？","at":"P02","options":["产品","个人能力"],"answer":-1,"vote":true,"wrong":"直接继续"}},{"row":5,"stage":"课程体系·阶段1","p":"P03","topic":"","script":"正确答案就是产品更重要一点。如果说我们的产品不行，那光凭老师的一张嘴。跟孩子，跟家长也都讲不出花来。今天我们的课程就重点给大家讲讲一下我们的课程体系还有优势都在哪里？首先来看一下课程体系这里。","interact":null},{"row":6,"stage":"课程体系·阶段1","p":"P04","topic":"","script":"编程的话其实会有很多种语言，那现在PPT上展示的这些就是我们核桃课程体系里面所包含的语言，从scratch图形化到Python，再到后面比较难一点的c++。这些呢，我们也是按照孩子的认知发展规律一步一步搭建起来的，首先是图形化啊，对孩子是一个编程的启蒙，孩子拖拽积木就可以写程序，不用去记语法啊，主要是培养兴趣和编程思维的，成就感来的很快，效果也容易看得到。Python对孩子来说语法比较简单，学起来也比较轻松，对孩子来说就是从图形化过渡到真正代码的一个过程。c++它就是竞赛语言了，难度比较大，同时他也是信奥赛、CSP的唯一指定语言、含金量最高，更是升学加分的硬通货。","interact":{"q":"图形化、Python、C++都可以参加信奥赛？","at":"P04","options":["对","错"],"answer":1,"vote":false,"wrong":"重讲本页重触发"}},{"row":7,"stage":"课程体系·阶段1","p":"P05","topic":"","script":"那我们的课程为什么这样子去设置呢？首先从政策层面来看，国家现在非常重视编程教育啊，信息科技也已经正式进入中小学的课标了，科技特长生的比例也在逐年的扩大，从市场层面呢，越来越多的家长知道了c++、信奥赛，包括抖音呀，小红书也都在说编程到底对孩子有什么作用，家长有需求，所以我们产出了这样的一个课程体系来满足市场需求。","interact":null},{"row":8,"stage":"课程体系·阶段1","p":"P06","topic":"","script":"一起来看一下，整个的课程规划两个都是先从图形化再晋升到Python，最后衔接到c++语言。每一种语言都会分思维线和科特线。看上去差不多，但是课程、课时安排都是不一样的。思维线图形化分两个阶段，Python是三个阶段，图形化科特线也是分两个阶段，但是Python只有两个阶段的，到了c++阶段以后，再根据孩子的年龄分班，6年级及以下的孩子会进入趣味c++的课程，7年级及以上的孩子会进入常规的c++课程。这里我们还需要关注的就是如果没有特殊的需求，那每一个孩子的学习路径都应该是从最开始一步一步的往上逐级去学习的，只有家长主动提出了他想要跳级或者其他的需求，老师才可以给根据孩子的情况调整课程进度。","interact":null},{"row":9,"stage":"课程体系·阶段2","p":"P07","topic":"","script":"首先我们先来讲一下关于图形化两个业务线的具体的安排，先来看科特线，科特线整个图形化学完需要两个阶段啊，周期呢就是每个阶段都需要半年的时间，那课程这里每个阶段都包含60个课时，分别是30课时软编课+12课时硬编课+12课时赛事强化课+6课时赛考辅导直播课 ，这些课时分布大家也都要记清楚。每个阶段的课程呢价格是3299啊，是面向所有的孩子的。我们给家长测同步的赛考规划，就是学一年，也就是图形化学完之后孩子具备四张国家级证书的水平，那这里注意，这个是指孩子具备水平，而不是说学完了这一年，我就一定会给孩子发这四个证书。","interact":null},{"row":10,"stage":"课程体系·阶段2","p":"P08","topic":"","script":"接下来我们来看一下关于科特线的图形化两个阶段孩子到底学习效果是什么样的呢？首先在第一阶段我们会带着孩子去参加ctl1级的考级，同时也会给他规划一个国家级或白名单比赛。那在这6个月学完之后，孩子就能拿到这样子的效果。第二个阶段全称叫做算法进阶与赛考强化阶段。也是一样的，我们会给孩子规划一次考级和一次国家级或白名单比赛，那在学习的过程中也是一样对标6个月的学习时间。","interact":null},{"row":11,"stage":"课程体系·阶段2","p":"P09","topic":"","script":"那接下来我们来看一下图形化一阶段孩子的学习节奏是什么样的？竖着代表的是6个level，也就是6个月。横着看的是每个level的第几周的安排，我们从这个图可以看到。孩子们在学习的过程中，每一个level的第三周都会解锁一次硬件课，在第四周的时候会解锁两次课啊，也就是四个课时，不管是赛事课还是赛事直播课，它都是4个课时。","interact":null},{"row":12,"stage":"课程体系·阶段2","p":"P10","topic":"","script":"这个图片是孩子们在图形化第二阶段的学习内容，因为它的难度是有提升的，所以它的硬件课并不是固定在第三周，而是在每个level里面，如果说他的第四周会有一次赛事课，那他就会同步搭配一次硬件课啊，如果没有的话，他就会固定在第三周，所以后续如果带算法的老师一定要关注课时安排，不要给家长，孩子讲错了。","interact":{"q":"第一阶段和第二阶段的课时分布一模一样？","at":"P10","options":["对","错"],"answer":1,"vote":false,"wrong":"重讲本页重触发"}},{"row":13,"stage":"课程体系·阶段2","p":"P11","topic":"","script":"接下来我们来看一下图形化思维线的课程安排，整体来说思维线的图形化也是分为两个阶段就能学完，每个阶段也是半年的周期，但是呢在这半年里面他们的课时分布不太一样，思维线就没有赛事课的安排了，只有软编课和硬编课了。一共是48个课时包含42课时软编课+6课时的硬编课。它的价钱呢相对来说也会便宜一些啊，2699一个阶段。","interact":null},{"row":14,"stage":"课程体系·阶段2","p":"P12","topic":"","script":"课时安排方面，大家可以看一下这个图片啊，一阶段和二阶段的课时分布是一样的。只有level2，level4和level6的时候，会在第三周解锁一次硬编课，其他的都是软编课。","interact":null},{"row":15,"stage":"课程体系·阶段2","p":"P13","topic":"","script":"赛考规划方面也是不一样的，思维线的赛考规划在第一阶段的时候，只会让孩子去参加一个考级，在第二阶段的时候才会同时规划一次考级和一个国家级或白名单比赛。细心的老师也可以发现，刚刚我们讲过的科特线规划的考级是ctl，但是思维线规划的考级是ycl。老师们也需要记住这个小细节，不敢说错了哦","interact":{"q":"科特线的赛事规划哪个考级？","at":"P13","options":["CTL","YCL"],"answer":0,"vote":false,"wrong":"重讲本页重触发"}},{"row":16,"stage":"课程体系·阶段3","p":"P14","topic":"","script":"刚刚我们已经把所有的关于图形化的课程安排都已经学习完了，接下来我们来看一下Python的内容，所有的图形化阶段的孩子，不管是思维线还是科特线，在完成了图形化两个阶段的学习之后，就会按照规划进入Python阶段的学习。如果说在这个学习的过程中，有家长主动提出想要去跳级c++，那这个就是另外去做规划了，除此之外，大部分孩子都会按照我们的课程安排顺利的进入Python阶段的学习，Python阶段也是一样，分为科特线和思维线。这里需要注意的是如果你在图形化就是科特线了，那孩子到Python以后依然是科特线的这个两条线，中间是不会有交叉关系的。关于科特线的Python，它的课程名称叫做Python语法和竞赛入门。4199一个阶段，科特线的Python规划也是总共两个阶段上课时间跟我们前面的图形化都是一样的，会在周四，周五，周六晚上去解锁，课时安排一共是60个课时，包含软编36课时，硬编8个课时，赛事4个课时，赛事直播课12个课时，课程节奏每周会解锁一次课，但是呢在level3的时候，每周会解锁三个课时，两个课时的软编课和一个课时的赛事课，level6阶段也会每周解锁四个课时，两个课时的软编课和两个课时的赛事课。赛考规划和科特的图形化就一样了啊，学一年具备四张国家级证书的水平。","interact":null},{"row":17,"stage":"课程体系·阶段3","p":"P15","topic":"","script":"接下来通过这张图片给大家说一下，为什么我们在level3和level6的时候会解锁多一次或者多两次的赛事课呢？在Python阶段会把考级的课程安排到集中在level3进行上课每一周额外解锁1个课时的赛事课。把国家级或白名单赛事的专项课安排到level6阶段每一周额外解锁两个课时的赛事课。","interact":null},{"row":18,"stage":"课程体系·阶段3","p":"P16","topic":"","script":"整个科特线的赛事规划在第一阶段的时候，Python会参加一次CTL考级和一次赛事，二阶段也会参加一次考级和一次赛事，也就是我们前面说的学一年孩子可以具备四张国家级证书的水平。","interact":null},{"row":19,"stage":"课程体系·阶段3","p":"P17","topic":"","script":"接下来我们来看一下思维线的Python是什么样的呢？首先在课程周期这里就不太一样了，思维线的Python课程一共包含三个阶段，也就是说需要一年半的时间，思维线的孩子才可以把Python整个学完，价格是每个阶段2999元的价钱，上课时间跟科特线是一样的，周四，周五，周六。但是这里的课时就不一样了，思维线的课时里面包含48个课时，包含36课时的软编课，8课时硬编课和4课时的赛事课，课程节奏就是一周只解锁一次课，每个阶段都是半年上完。","interact":null},{"row":20,"stage":"课程体系·阶段3","p":"P18","topic":"","script":"课时安排大家可以看一下这个图片，在level3和level6这两个月是没有硬件课和赛事课的，那其他的部分大家可以关注一下他的课程都是分布在哪个阶段的。","interact":null},{"row":21,"stage":"课程体系·阶段3","p":"P19","topic":"","script":"关于思维线的Python赛事规划，因为课程里面关于赛事的课程比较少，所以如果在思维线的孩子想要报名ycl考试或国家级赛事的话，他是需要去额外的去付费购买考级的赛事直播课的，也就是图片上展示的这个提升营。","interact":null},{"row":22,"stage":"课程体系·阶段4","p":"P20","topic":"","script":"接下来我们来讲一下关于c++的这个课程，不管是思维线还是科特线的孩子，最终在Python学完之后都会进入c++的学习。c++这里就不会明确的分科特线和思维线了，而是以孩子的年龄去进行区分，6年级及以下的孩子进入趣味c++，7年级及以上的孩子进入常规c++这两个课程，它的课时安排是不太一样的，但是价格是一样的。这里需要去注意的就是如果用户没有去主动跟你提两个课程有什么区别，那我们老师在沟通的时候统一都说c++课程。","interact":null},{"row":23,"stage":"课程体系·阶段4","p":"P21","topic":"","script":"通过这两张图片想告诉大家的就是思维线和科特线，他们是两个独立的体系。思维线的孩子从图形化开始再到三个阶段的Python，再到后面根据孩子年级规划c++。科特线的孩子就是图形化开始Python两个阶段，再到后续规划c++的内容，他们两个之间是互相不交叉的，那这里两条线共有的一个规则就是在Python阶段，孩子们是有机会去直升c++的，这里需要注意的就是如果家长没有主动跟老师提跳级的事情，那我们老师也尽可能的不要主动跟家长去讲。","interact":{"q":"思维线的Python分为几个阶段？","at":"P21","options":["1个阶段","2个阶段","3个阶段","4个阶段"],"answer":2,"vote":false,"wrong":"重讲本页重触发"}},{"row":24,"stage":"课程体系·阶段4","p":"P22","topic":"","script":"刚刚给大家讲的班级体系呢都是半年为周期的，那除了半年的长期班之外，核桃也是有这样子的，短期集训营的，比如说夏令营，冬令营。或者是一些竞赛班的集训营，根据孩子的年纪，家长的意愿，如果有需求的话，可以去给他去规划，达到快速提升的效果。","interact":null},{"row":25,"stage":"课程体系·阶段5","p":"P23","topic":"","script":"刚刚我们已经学习完了所有的核桃的课程体系，接下来看一下我们的课程体系的优势都在哪里？","interact":null},{"row":26,"stage":"课程体系·阶段5","p":"P24","topic":"","script":"总的来说，一个好的课程要达到让孩子愿意学、学的会的效果，才是一个好的课程，那我们是怎么做的呢？首先有三大支柱来决定，我们课程是足够专业的啊，能够支持孩子去专业的学习，第一个就是课程模式，我们是直播+实操+实操监课的模式，第二个是因材施教，我们有分支教学以及课前自动复习的方式，第三个学练考一体，每一次课的设置都是对标赛考题型的，那除了这些支撑专业高度的支柱之外，还有三层保障能够决定孩子的学习效果，第一层让孩子愿意学，我们采取了剧情闯关，金币激励以及软硬件结合的方式，通过科学时间轴以及专注力训练来保障孩子能够学的会，除此之外还有一些课程的额外附加价值，比如说在课程内容里会结合一些科普知识，校内学科。","interact":null},{"row":27,"stage":"课程体系·阶段5","p":"P25","topic":"","script":"首先在直播课这里，我们有课前直播，每周一次的课前直播，还有赛事直播课。实操课就是每周孩子会自己去学习的，以闯关的形式去边学边练，有剧情互动以及闯关的特效和金币奖励。实时跟课指的就是孩子在上课的过程中，老师们可以通过核桃辅导的界面看到孩子目前的上课进度，以及可以看到某一个孩子的学习界面。孩子在学的过程中，如果遇到了不会的题目，老师也可以去主动的给他发起视频，语音连麦或文字消息。","interact":null},{"row":28,"stage":"课程体系·阶段5","p":"P26","topic":"","script":"因材施教指的就是我们在课前复习的时候会在剧情里面设置回顾环节，会以提问的方式问孩子这个知识点你还记得吗？如果不记得了，孩子可以自己去选择他想要接下来进行的挑战难度。分支关卡指的就是如果这个孩子学的特别快，系统会根据孩子的学习时长解锁隐藏关卡，进行拔高训练，对于学的慢孩子的话，也会把他目前薄弱的知识多次进行练习，适应每一个孩子的学习节奏。","interact":{"q":"每次课程所有孩子学习的关卡都是不一样的？","at":"P26","options":["对","错"],"answer":0,"vote":false,"wrong":"重讲本页重触发"}},{"row":29,"stage":"课程体系·阶段5","p":"P27","topic":"","script":"学练考一体指的就是我们平时学的内容，练习的内容，对标的就是真实的赛考题型，比如说选择题和编程题都是孩子们在去参加比赛，考级时会遇到的题型。","interact":null},{"row":30,"stage":"课程体系·阶段5","p":"P28","topic":"","script":"在吸引孩子的学习兴趣这里我们包含三个板块，第一个剧情闯关，每一次课程呢都是一个侦探的剧情，孩子们去扮演小侦探，破案啊，写代码呢，就像是找线索一样去闯关。","interact":null},{"row":31,"stage":"课程体系·阶段5","p":"P28-2","topic":"","script":"这个视频是关于我们上课模式里面的剧情闯关的内容啊，大家可以通过这个感受一下孩子是怎么样去上课的。","interact":null},{"row":32,"stage":"课程体系·阶段5","p":"P28-3","topic":"","script":"这个视频是关于金币激励，大家可以看一下怎么样给孩子发金币，金币又怎么样在客户端里面让孩子去使用。","interact":null},{"row":33,"stage":"课程体系·阶段5","p":"P28-4","topic":"","script":"关于软硬件结合，这里我们的课程不管是Python图形化还是c++，除了常规c++之外，其他的课程都是有硬件课的，这个图片给大家展示的是算法阶段的科特线硬件课内容。","interact":null},{"row":34,"stage":"课程体系·阶段5","p":"P29","topic":"","script":"在课程时间分布这里，我们也是根据这个年龄段的孩子注意力曲线去设置的，前5分钟会有一个唤醒的阶段，在中间呢会通过多频次的剧情加闯关互动的方式让孩子们注意力集中，最后5分钟也会有一个剧情的收尾，所以每次课的时间我们都是有过精心设计的。","interact":null},{"row":35,"stage":"课程体系·阶段5","p":"P30","topic":"","script":"除此之外，我们的课程也会有科普知识以及跟校内学科相结合啊，每次课都会有融入科普的小知识以及跟校内结合的部分。","interact":null},{"row":36,"stage":"课程体系·阶段6","p":"P31","topic":"","script":"接下来会给大家展示三个和课程相关的家长可能会有的异议，首先第一个就是家长可能会担心孩子学不明白，那我们老师侧也给大家写了一个参考话术，整体的思路呢就是先共情，理解家长的担心，接着告诉他课程模式跟上个学期是一样的，在方案这里我们是根据孩子的因材施教，还有注意力曲线能够确保孩子学的会，最后给信心，给到家长信心，告诉他上个学期孩子成绩很优异啊，大概率就这个学期也没啥问题。","interact":null},{"row":37,"stage":"课程体系·阶段6","p":"P32","topic":"","script":"第二个因为学习图形化的孩子相对来说年纪还都比较小，所以家长也会担心他专注力的问题，那也是一样的，首先要告诉他这个专注力差啊，是这个年纪段的孩子普遍的现象，那我们学编程就是可以帮助孩子提升专注力的，最后呢告诉他我们的课程有哪些设计可以帮助孩子集中注意力，最终给到他一个效果的展示。","interact":null},{"row":38,"stage":"课程体系·阶段6","p":"P33","topic":"","script":"第三个，有些高知的家长可能会觉得哎，你这个课程全是动画啊，太简单了，那我们的回答思路呢，首先第一个告诉他，我们为什么用动画去设计啊？是为了让孩子愿意学，第二步呢告诉他我们的内容哎是专业的，能够保障孩子学的会的，第三步给他一些证据啊，我们的上课内容呢是对标赛事题型的，并且有因材施教的分支教学也会搭配软硬件结合，让孩子真正学到东西。嗯","interact":null},{"row":39,"stage":"课程体系·阶段6","p":"P34","topic":"","script":"最后我们来总结一下整体的课程优势，就分为三大支柱和三层保障，三大支柱第一个课程模式，我们是直播，实操和实操监课，第二个因材施教，第三个学练考一体，三层保障呢就是能够保障孩子愿意学，并且学的会也能够给孩子提供一些额外的价值，这些老师们可以在笔记本上记录一下。","interact":null},{"row":40,"stage":"课程体系·阶段6","p":"P35","topic":"","script":"最后给大家展示一下我们的赛事成绩部分啊，ctl的通过率呢90%往上了，白名单比赛的通过率也是在青少年编程行业里面的top1啊，今年的奥林匹克竞赛，也就是信奥赛，更是拿到了1/2的金牌。","interact":null},{"row":41,"stage":"课程体系·阶段6","p":"P36","topic":"","script":"包括家长那边的用户心声，体验感也非常的好啊，第一个就是课程设计，好孩子很喜欢第二个图片呢，展示的是孩子很喜欢课程，并且能够帮助到校内的数学和英语了，第三个图片展示的是来帮助孩子逻辑性提高了，并且还没有读小学呢，都可以算30以内的加减法了。","interact":null},{"row":42,"stage":"课程体系·阶段6","p":"P37","topic":"","script":"最后给大家展示一下我们核桃的教育理念，让每个孩子爱学习，会学习，让优质的教育触手可及。","interact":null},{"row":43,"stage":"课程体系·阶段6","p":"P38","topic":"","script":"好啦，那我们今天的课程体系的这节课就结束了，大家来填写一下问卷吧！","interact":{"q":"是否已完成问卷填写？","at":"P38","options":["是","否"],"answer":0,"vote":false,"wrong":"直接继续"}}],"qs":[{"id":"T-S01","type":"阶段练习题","chapter":"课程体系·阶段1","q":"核桃的课程体系包含哪些编程语言？","options":[{"k":"A","t":"C++"},{"k":"B","t":"Python"},{"k":"C","t":"图形化"},{"k":"D","t":"java"}],"answer":"ABC","back":""},{"id":"T-S02","type":"阶段练习题","chapter":"课程体系·阶段1","q":"C++是信奥赛官方唯一的指定语言？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"A","back":""},{"id":"T-S03","type":"阶段练习题","chapter":"课程体系·阶段1","q":"科特线和思维线只是名字不同，课程安排、课程设置都是一模一样的？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S04","type":"阶段练习题","chapter":"课程体系·阶段1","q":"趣味C++的课程适用于下列哪个孩子学习？","options":[{"k":"A","t":"三年级"},{"k":"B","t":"四年级"},{"k":"C","t":"五年级"},{"k":"D","t":"六年级"},{"k":"E","t":"七年级"}],"answer":"ABCD","back":""},{"id":"T-S05","type":"阶段练习题","chapter":"课程体系·阶段1","q":"学习的过程中课导老师可以根据孩子的学习情况，主动提出跳级或者调整进度？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S06","type":"阶段练习题","chapter":"课程体系·阶段2","q":"图形化科特线的课时安排是什么？","options":[{"k":"A","t":"60课时"},{"k":"B","t":"48课时"},{"k":"C","t":"30课时软编课+12课时硬编课+12课时赛事强化课+6课时赛考辅导直播课"},{"k":"D","t":"42课时软编课+6课时硬编课"}],"answer":"AC","back":""},{"id":"T-S07","type":"阶段练习题","chapter":"课程体系·阶段2","q":"科特线的赛事安排一年可以具备几张证书的水平？","options":[{"k":"A","t":"1"},{"k":"B","t":"2"},{"k":"C","t":"3"},{"k":"D","t":"4"}],"answer":"D","back":""},{"id":"T-S08","type":"阶段练习题","chapter":"课程体系·阶段2","q":"思维线的考级是哪个？","options":[{"k":"A","t":"YCL"},{"k":"B","t":"CTL"}],"answer":"A","back":""},{"id":"T-S09","type":"阶段练习题","chapter":"课程体系·阶段2","q":"思维线的图形化课程总共几个阶段？","options":[{"k":"A","t":"1"},{"k":"B","t":"2"},{"k":"C","t":"3"},{"k":"D","t":"4"}],"answer":"B","back":""},{"id":"T-S10","type":"阶段练习题","chapter":"课程体系·阶段2","q":"思维线的赛事安排一年可以具备几张证书的水平？","options":[{"k":"A","t":"1"},{"k":"B","t":"2"},{"k":"C","t":"3"},{"k":"D","t":"4"}],"answer":"C","back":""},{"id":"T-S11","type":"阶段练习题","chapter":"课程体系·阶段3","q":"思维线的Python课程总共几个阶段？","options":[{"k":"A","t":"1"},{"k":"B","t":"2"},{"k":"C","t":"3"},{"k":"D","t":"4"}],"answer":"C","back":""},{"id":"T-S12","type":"阶段练习题","chapter":"课程体系·阶段3","q":"思维线的Python课程多少钱？","options":[{"k":"A","t":"2699"},{"k":"B","t":"4199"},{"k":"C","t":"3299"},{"k":"D","t":"2999"}],"answer":"D","back":""},{"id":"T-S13","type":"阶段练习题","chapter":"课程体系·阶段3","q":"科特线的Python课程多少钱？","options":[{"k":"A","t":"2699"},{"k":"B","t":"4199"},{"k":"C","t":"3299"},{"k":"D","t":"2999"}],"answer":"B","back":""},{"id":"T-S14","type":"阶段练习题","chapter":"课程体系·阶段3","q":"思维线的没有硬件课？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S15","type":"阶段练习题","chapter":"课程体系·阶段3","q":"科特线的Python课程总共几个阶段？","options":[{"k":"A","t":"1"},{"k":"B","t":"2"},{"k":"C","t":"3"},{"k":"D","t":"4"}],"answer":"B","back":""},{"id":"T-S16","type":"阶段练习题","chapter":"课程体系·阶段4","q":"Python学完之后，家长可以任意选择趣味C++还是常规C++？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S17","type":"阶段练习题","chapter":"课程体系·阶段4","q":"趣味C++有硬件课所以比常规C++贵？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S18","type":"阶段练习题","chapter":"课程体系·阶段4","q":"课导不能主动与用户提及趣味C++和常规C++区别？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"A","back":""},{"id":"T-S19","type":"阶段练习题","chapter":"课程体系·阶段4","q":"思维线和科特线可以交叉学习？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S20","type":"阶段练习题","chapter":"课程体系·阶段4","q":"短期集训营的作用是什么？","options":[{"k":"A","t":"集中冲刺"},{"k":"B","t":"快速提升"}],"answer":"AB","back":""},{"id":"T-S21","type":"阶段练习题","chapter":"课程体系·阶段5","q":"决定课程的专业高度的有哪些？","options":[{"k":"A","t":"课程模式"},{"k":"B","t":"因材施教"},{"k":"C","t":"学练考一体"},{"k":"D","t":"软硬件结合"}],"answer":"ABC","back":""},{"id":"T-S22","type":"阶段练习题","chapter":"课程体系·阶段5","q":"我们的课程模式里不包含直播？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S23","type":"阶段练习题","chapter":"课程体系·阶段5","q":"直播课都包含哪些形式？","options":[{"k":"A","t":"硬件直播"},{"k":"B","t":"视频连麦"},{"k":"C","t":"课前直播"},{"k":"D","t":"赛考直播"}],"answer":"CD","back":""},{"id":"T-S24","type":"阶段练习题","chapter":"课程体系·阶段5","q":"每次课程所有孩子学习的关卡都是不一样的？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S25","type":"阶段练习题","chapter":"课程体系·阶段5","q":"课程中赛考题型都有哪些？","options":[{"k":"A","t":"选择题"},{"k":"B","t":"连线题"},{"k":"C","t":"填空题"},{"k":"D","t":"编程题"}],"answer":"AD","back":""},{"id":"T-S26","type":"阶段练习题","chapter":"课程体系·阶段6","q":"遇到家长提出异议的时候，第一反应需要先反驳家长？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-S27","type":"阶段练习题","chapter":"课程体系·阶段6","q":"核桃的教育理念是什么？","options":[{"k":"A","t":"爱学习"},{"k":"B","t":"会学习"},{"k":"C","t":"让优质的教育触手可及"}],"answer":"ABC","back":""},{"id":"T-S28","type":"阶段练习题","chapter":"课程体系·阶段6","q":"今年的信息学奥赛的成绩核桃包揽多少金牌？","options":[{"k":"A","t":"1/2"},{"k":"B","t":"2/3"},{"k":"C","t":"1/3"},{"k":"D","t":"1/4"}],"answer":"A","back":""},{"id":"T-S29","type":"阶段练习题","chapter":"课程体系·阶段6","q":"新学期的算法学不会怎么办","options":[{"k":"A","t":"共情"},{"k":"B","t":"归因"},{"k":"C","t":"亮方案"},{"k":"D","t":"给信心"}],"answer":"ABCD","back":""},{"id":"T-S30","type":"阶段练习题","chapter":"课程体系·阶段6","q":"我家孩子专注力差，能学吗？","options":[{"k":"A","t":"共情"},{"k":"B","t":"转观点"},{"k":"C","t":"亮方案"},{"k":"D","t":"给效果"}],"answer":"ABCD","back":""},{"id":"T-F01","type":"本章综合测试题","chapter":"课程体系·全章","q":"Python学完之后，家长可以任意选择趣味C++还是常规C++？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-F02","type":"本章综合测试题","chapter":"课程体系·全章","q":"核桃的课程体系包含哪些编程语言？","options":[{"k":"A","t":"C++"},{"k":"B","t":"Python"},{"k":"C","t":"图形化"},{"k":"D","t":"java"}],"answer":"ABC","back":""},{"id":"T-F03","type":"本章综合测试题","chapter":"课程体系·全章","q":"图形化科特线的课时安排是什么？","options":[{"k":"A","t":"60课时"},{"k":"B","t":"48课时"},{"k":"C","t":"30课时软编课+12课时硬编课+12课时赛事强化课+6课时赛考辅导直播课"},{"k":"D","t":"42课时软编课+6课时硬编课"}],"answer":"AC","back":""},{"id":"T-F04","type":"本章综合测试题","chapter":"课程体系·全章","q":"直播课都包含哪些形式？","options":[{"k":"A","t":"硬件直播"},{"k":"B","t":"视频连麦"},{"k":"C","t":"课前直播"},{"k":"D","t":"赛考直播"}],"answer":"CD","back":""},{"id":"T-F05","type":"本章综合测试题","chapter":"课程体系·全章","q":"决定课程的专业高度的有哪些？","options":[{"k":"A","t":"课程模式"},{"k":"B","t":"因材施教"},{"k":"C","t":"学练考一体"},{"k":"D","t":"软硬件结合"}],"answer":"ABC","back":""},{"id":"T-F06","type":"本章综合测试题","chapter":"课程体系·全章","q":"课程中赛考题型都有哪些？","options":[{"k":"A","t":"选择题"},{"k":"B","t":"连线题"},{"k":"C","t":"填空题"},{"k":"D","t":"编程题"}],"answer":"AD","back":""},{"id":"T-F07","type":"本章综合测试题","chapter":"课程体系·全章","q":"思维线的Python课程多少钱？","options":[{"k":"A","t":"2699"},{"k":"B","t":"4199"},{"k":"C","t":"3299"},{"k":"D","t":"2999"}],"answer":"D","back":""},{"id":"T-F08","type":"本章综合测试题","chapter":"课程体系·全章","q":"Python学完之后，家长可以任意选择趣味C++还是常规C++？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""},{"id":"T-F09","type":"本章综合测试题","chapter":"课程体系·全章","q":"决定课程的专业高度的有哪些？","options":[{"k":"A","t":"课程模式"},{"k":"B","t":"因材施教"},{"k":"C","t":"学练考一体"},{"k":"D","t":"软硬件结合"}],"answer":"ABC","back":""},{"id":"T-F10","type":"本章综合测试题","chapter":"课程体系·全章","q":"学习的过程中课导老师可以根据孩子的学习情况，主动提出跳级或者调整进度？","options":[{"k":"A","t":"对"},{"k":"B","t":"错"}],"answer":"B","back":""}],"timing":{"P01":{"sents":["上节课咱们学习了工作的全流程，这节课呢给大家想讲一下咱们核桃的课程体系。","那我想讲之前先来提问一下在座的各位老师，之前有接触过教培这个行业的吗？"],"durs":[7.992,7.32]},"P02":{"sents":["那接触过教培行业的老师大家觉得在续报的过程中，还有平时上课的过程中，老师们觉得是产品本身厉害更重要一点，还是说我们自己专业能力足够，这个更重要？"],"durs":[15.216]},"P03":{"sents":["正确答案就是产品更重要一点。","如果说我们的产品不行，那光凭老师的一张嘴。","跟孩子，跟家长也都讲不出花来。","今天我们的课程就重点给大家讲讲一下我们的课程体系还有优势都在哪里？","首先来看一下课程体系这里。"],"durs":[3.528,4.416,3.432,7.032,3.024]},"P04":{"sents":["编程的话其实会有很多种语言，那现在PPT上展示的这些就是我们核桃课程体系里面所包含的语言，从scratch图形化到Python，再到后面比较难一点的c++。","这些呢，我们也是按照孩子的认知发展规律一步一步搭建起来的，首先是图形化啊，对孩子是一个编程的启蒙，孩子拖拽积木就可以写程序，不用去记语法啊，主要是培养兴趣和编程思维的，成就感来的很快，效果也容易看得到。","Python对孩子来说语法比较简单，学起来也比较轻松，对孩子来说就是从图形化过渡到真正代码的一个过程。","c++它就是竞赛语言了，难度比较大，同时他也是信奥赛、CSP的唯一指定语言、含金量最高，更是升学加分的硬通货。"],"durs":[14.328,19.8,10.152,12]},"P05":{"sents":["那我们的课程为什么这样子去设置呢？","首先从政策层面来看，国家现在非常重视编程教育啊，信息科技也已经正式进入中小学的课标了，科技特长生的比例也在逐年的扩大，从市场层面呢，越来越多的家长知道了c++、信奥赛，包括抖音呀，小红书也都在说编程到底对孩子有什么作用，家长有需求，所以我们产出了这样的一个课程体系来满足市场需求。"],"durs":[3.408,28.656]},"P06":{"sents":["一起来看一下，整个的课程规划两个都是先从图形化再晋升到Python，最后衔接到c++语言。","每一种语言都会分思维线和科特线。","看上去差不多，但是课程、课时安排都是不一样的。","思维线图形化分两个阶段，Python是三个阶段，图形化科特线也是分两个阶段，但是Python只有两个阶段的，到了c++阶段以后，再根据孩子的年龄分班，6年级及以下的孩子会进入趣味c++的课程，7年级及以上的孩子会进入常规的c++课程。","这里我们还需要关注的就是如果没有特殊的需求，那每一个孩子的学习路径都应该是从最开始一步一步的往上逐级去学习的，只有家长主动提出了他想要跳级或者其他的需求，老师才可以给根据孩子的情况调整课程进度。"],"durs":[9.216,3.936,5.112,23.352,19.512]},"P07":{"sents":["首先我们先来讲一下关于图形化两个业务线的具体的安排，先来看科特线，科特线整个图形化学完需要两个阶段啊，周期呢就是每个阶段都需要半年的时间，那课程这里每个阶段都包含60个课时，分别是30课时软编课+12课时硬编课+12课时赛事强化课+6课时赛考辅导直播课 ，这些课时分布大家也都要记清楚。","每个阶段的课程呢价格是3299啊，是面向所有的孩子的。","我们给家长测同步的赛考规划，就是学一年，也就是图形化学完之后孩子具备四张国家级证书的水平，那这里注意，这个是指孩子具备水平，而不是说学完了这一年，我就一定会给孩子发这四个证书。"],"durs":[29.4,6.12,17.808]},"P08":{"sents":["接下来我们来看一下关于科特线的图形化两个阶段孩子到底学习效果是什么样的呢？","首先在第一阶段我们会带着孩子去参加ctl1级的考级，同时也会给他规划一个国家级或白名单比赛。","那在这6个月学完之后，孩子就能拿到这样子的效果。","第二个阶段全称叫做算法进阶与赛考强化阶段。","也是一样的，我们会给孩子规划一次考级和一次国家级或白名单比赛，那在学习的过程中也是一样对标6个月的学习时间。"],"durs":[7.488,9.768,4.824,4.944,11.088]},"P09":{"sents":["那接下来我们来看一下图形化一阶段孩子的学习节奏是什么样的？","竖着代表的是6个level，也就是6个月。","横着看的是每个level的第几周的安排，我们从这个图可以看到。","孩子们在学习的过程中，每一个level的第三周都会解锁一次硬件课，在第四周的时候会解锁两次课啊，也就是四个课时，不管是赛事课还是赛事直播课，它都是4个课时。"],"durs":[5.952,4.032,5.616,15.216]},"P10":{"sents":["这个图片是孩子们在图形化第二阶段的学习内容，因为它的难度是有提升的，所以它的硬件课并不是固定在第三周，而是在每个level里面，如果说他的第四周会有一次赛事课，那他就会同步搭配一次硬件课啊，如果没有的话，他就会固定在第三周，所以后续如果带算法的老师一定要关注课时安排，不要给家长，孩子讲错了。"],"durs":[28.368]},"P11":{"sents":["接下来我们来看一下图形化思维线的课程安排，整体来说思维线的图形化也是分为两个阶段就能学完，每个阶段也是半年的周期，但是呢在这半年里面他们的课时分布不太一样，思维线就没有赛事课的安排了，只有软编课和硬编课了。","一共是48个课时包含42课时软编课+6课时的硬编课。","它的价钱呢相对来说也会便宜一些啊，2699一个阶段。"],"durs":[20.736,6.336,6.096]},"P12":{"sents":["课时安排方面，大家可以看一下这个图片啊，一阶段和二阶段的课时分布是一样的。","只有level2，level4和level6的时候，会在第三周解锁一次硬编课，其他的都是软编课。"],"durs":[7.248,8.16]},"P13":{"sents":["赛考规划方面也是不一样的，思维线的赛考规划在第一阶段的时候，只会让孩子去参加一个考级，在第二阶段的时候才会同时规划一次考级和一个国家级或白名单比赛。","细心的老师也可以发现，刚刚我们讲过的科特线规划的考级是ctl，但是思维线规划的考级是ycl。","老师们也需要记住这个小细节，不敢说错了哦"],"durs":[15.072,9.72,4.344]},"P14":{"sents":["刚刚我们已经把所有的关于图形化的课程安排都已经学习完了，接下来我们来看一下Python的内容，所有的图形化阶段的孩子，不管是思维线还是科特线，在完成了图形化两个阶段的学习之后，就会按照规划进入Python阶段的学习。","如果说在这个学习的过程中，有家长主动提出想要去跳级c++，那这个就是另外去做规划了，除此之外，大部分孩子都会按照我们的课程安排顺利的进入Python阶段的学习，Python阶段也是一样，分为科特线和思维线。","这里需要注意的是如果你在图形化就是科特线了，那孩子到Python以后依然是科特线的这个两条线，中间是不会有交叉关系的。","关于科特线的Python，它的课程名称叫做Python语法和竞赛入门。","4199一个阶段，科特线的Python规划也是总共两个阶段上课时间跟我们前面的图形化都是一样的，会在周四，周五，周六晚上去解锁，课时安排一共是60个课时，包含软编36课时，硬编8个课时，赛事4个课时，赛事直播课12个课时，课程节奏每周会解锁一次课，但是呢在level3的时候，每周会解锁三个课时，两个课时的软编课和一个课时的赛事课，level6阶段也会每周解锁四个课时，两个课时的软编课和两个课时的赛事课。","赛考规划和科特的图形化就一样了啊，学一年具备四张国家级证书的水平。"],"durs":[19.992,19.656,11.088,6.312,40.608,7.224]},"P15":{"sents":["接下来通过这张图片给大家说一下，为什么我们在level3和level6的时候会解锁多一次或者多两次的赛事课呢？","在Python阶段会把考级的课程安排到集中在level3进行上课每一周额外解锁1个课时的赛事课。","把国家级或白名单赛事的专项课安排到level6阶段每一周额外解锁两个课时的赛事课。"],"durs":[10.008,9.408,8.232]},"P16":{"sents":["整个科特线的赛事规划在第一阶段的时候，Python会参加一次CTL考级和一次赛事，二阶段也会参加一次考级和一次赛事，也就是我们前面说的学一年孩子可以具备四张国家级证书的水平。"],"durs":[17.616]},"P17":{"sents":["接下来我们来看一下思维线的Python是什么样的呢？","首先在课程周期这里就不太一样了，思维线的Python课程一共包含三个阶段，也就是说需要一年半的时间，思维线的孩子才可以把Python整个学完，价格是每个阶段2999元的价钱，上课时间跟科特线是一样的，周四，周五，周六。","但是这里的课时就不一样了，思维线的课时里面包含48个课时，包含36课时的软编课，8课时硬编课和4课时的赛事课，课程节奏就是一周只解锁一次课，每个阶段都是半年上完。"],"durs":[4.776,21.96,17.4]},"P18":{"sents":["课时安排大家可以看一下这个图片，在level3和level6这两个月是没有硬件课和赛事课的，那其他的部分大家可以关注一下他的课程都是分布在哪个阶段的。"],"durs":[13.968]},"P19":{"sents":["关于思维线的Python赛事规划，因为课程里面关于赛事的课程比较少，所以如果在思维线的孩子想要报名ycl考试或国家级赛事的话，他是需要去额外的去付费购买考级的赛事直播课的，也就是图片上展示的这个提升营。"],"durs":[19.896]},"P20":{"sents":["接下来我们来讲一下关于c++的这个课程，不管是思维线还是科特线的孩子，最终在Python学完之后都会进入c++的学习。","c++这里就不会明确的分科特线和思维线了，而是以孩子的年龄去进行区分，6年级及以下的孩子进入趣味c++，7年级及以上的孩子进入常规c++这两个课程，它的课时安排是不太一样的，但是价格是一样的。","这里需要去注意的就是如果用户没有去主动跟你提两个课程有什么区别，那我们老师在沟通的时候统一都说c++课程。"],"durs":[11.904,20.016,11.136]},"P21":{"sents":["通过这两张图片想告诉大家的就是思维线和科特线，他们是两个独立的体系。","思维线的孩子从图形化开始再到三个阶段的Python，再到后面根据孩子年级规划c++。","科特线的孩子就是图形化开始Python两个阶段，再到后续规划c++的内容，他们两个之间是互相不交叉的，那这里两条线共有的一个规则就是在Python阶段，孩子们是有机会去直升c++的，这里需要注意的就是如果家长没有主动跟老师提跳级的事情，那我们老师也尽可能的不要主动跟家长去讲。"],"durs":[7.2,8.592,26.256]},"P22":{"sents":["刚刚给大家讲的班级体系呢都是半年为周期的，那除了半年的长期班之外，核桃也是有这样子的，短期集训营的，比如说夏令营，冬令营。","或者是一些竞赛班的集训营，根据孩子的年纪，家长的意愿，如果有需求的话，可以去给他去规划，达到快速提升的效果。"],"durs":[12.288,10.848]},"P23":{"sents":["刚刚我们已经学习完了所有的核桃的课程体系，接下来看一下我们的课程体系的优势都在哪里？"],"durs":[8.016]},"P24":{"sents":["总的来说，一个好的课程要达到让孩子愿意学、学的会的效果，才是一个好的课程，那我们是怎么做的呢？","首先有三大支柱来决定，我们课程是足够专业的啊，能够支持孩子去专业的学习，第一个就是课程模式，我们是直播+实操+实操监课的模式，第二个是因材施教，我们有分支教学以及课前自动复习的方式，第三个学练考一体，每一次课的设置都是对标赛考题型的，那除了这些支撑专业高度的支柱之外，还有三层保障能够决定孩子的学习效果，第一层让孩子愿意学，我们采取了剧情闯关，金币激励以及软硬件结合的方式，通过科学时间轴以及专注力训练来保障孩子能够学的会，除此之外还有一些课程的额外附加价值，比如说在课程内容里会结合一些科普知识，校内学科。"],"durs":[9.24,51.336]},"P25":{"sents":["首先在直播课这里，我们有课前直播，每周一次的课前直播，还有赛事直播课。","实操课就是每周孩子会自己去学习的，以闯关的形式去边学边练，有剧情互动以及闯关的特效和金币奖励。","实时跟课指的就是孩子在上课的过程中，老师们可以通过核桃辅导的界面看到孩子目前的上课进度，以及可以看到某一个孩子的学习界面。","孩子在学的过程中，如果遇到了不会的题目，老师也可以去主动的给他发起视频，语音连麦或文字消息。"],"durs":[7.392,10.392,12.312,9.552]},"P26":{"sents":["因材施教指的就是我们在课前复习的时候会在剧情里面设置回顾环节，会以提问的方式问孩子这个知识点你还记得吗？","如果不记得了，孩子可以自己去选择他想要接下来进行的挑战难度。","分支关卡指的就是如果这个孩子学的特别快，系统会根据孩子的学习时长解锁隐藏关卡，进行拔高训练，对于学的慢孩子的话，也会把他目前薄弱的知识多次进行练习，适应每一个孩子的学习节奏。"],"durs":[10.848,6.192,17.664]},"P27":{"sents":["学练考一体指的就是我们平时学的内容，练习的内容，对标的就是真实的赛考题型，比如说选择题和编程题都是孩子们在去参加比赛，考级时会遇到的题型。"],"durs":[14.592]},"P28":{"sents":["在吸引孩子的学习兴趣这里我们包含三个板块，第一个剧情闯关，每一次课程呢都是一个侦探的剧情，孩子们去扮演小侦探，破案啊，写代码呢，就像是找线索一样去闯关。"],"durs":[15.432]},"P28-2":{"sents":["这个视频是关于我们上课模式里面的剧情闯关的内容啊，大家可以通过这个感受一下孩子是怎么样去上课的。"],"durs":[8.928]},"P28-3":{"sents":["这个视频是关于金币激励，大家可以看一下怎么样给孩子发金币，金币又怎么样在客户端里面让孩子去使用。"],"durs":[9.696]},"P28-4":{"sents":["关于软硬件结合，这里我们的课程不管是Python图形化还是c++，除了常规c++之外，其他的课程都是有硬件课的，这个图片给大家展示的是算法阶段的科特线硬件课内容。"],"durs":[16.704]},"P29":{"sents":["在课程时间分布这里，我们也是根据这个年龄段的孩子注意力曲线去设置的，前5分钟会有一个唤醒的阶段，在中间呢会通过多频次的剧情加闯关互动的方式让孩子们注意力集中，最后5分钟也会有一个剧情的收尾，所以每次课的时间我们都是有过精心设计的。"],"durs":[22.392]},"P30":{"sents":["除此之外，我们的课程也会有科普知识以及跟校内学科相结合啊，每次课都会有融入科普的小知识以及跟校内结合的部分。"],"durs":[11.28]},"P31":{"sents":["接下来会给大家展示三个和课程相关的家长可能会有的异议，首先第一个就是家长可能会担心孩子学不明白，那我们老师侧也给大家写了一个参考话术，整体的思路呢就是先共情，理解家长的担心，接着告诉他课程模式跟上个学期是一样的，在方案这里我们是根据孩子的因材施教，还有注意力曲线能够确保孩子学的会，最后给信心，给到家长信心，告诉他上个学期孩子成绩很优异啊，大概率就这个学期也没啥问题。"],"durs":[37.248]},"P32":{"sents":["第二个因为学习图形化的孩子相对来说年纪还都比较小，所以家长也会担心他专注力的问题，那也是一样的，首先要告诉他这个专注力差啊，是这个年纪段的孩子普遍的现象，那我们学编程就是可以帮助孩子提升专注力的，最后呢告诉他我们的课程有哪些设计可以帮助孩子集中注意力，最终给到他一个效果的展示。"],"durs":[27.936]},"P33":{"sents":["第三个，有些高知的家长可能会觉得哎，你这个课程全是动画啊，太简单了，那我们的回答思路呢，首先第一个告诉他，我们为什么用动画去设计啊？","是为了让孩子愿意学，第二步呢告诉他我们的内容哎是专业的，能够保障孩子学的会的，第三步给他一些证据啊，我们的上课内容呢是对标赛事题型的，并且有因材施教的分支教学也会搭配软硬件结合，让孩子真正学到东西。","嗯"],"durs":[12.6,19.704,1.872]},"P34":{"sents":["最后我们来总结一下整体的课程优势，就分为三大支柱和三层保障，三大支柱第一个课程模式，我们是直播，实操和实操监课，第二个因材施教，第三个学练考一体，三层保障呢就是能够保障孩子愿意学，并且学的会也能够给孩子提供一些额外的价值，这些老师们可以在笔记本上记录一下。"],"durs":[26.136]},"P35":{"sents":["最后给大家展示一下我们的赛事成绩部分啊，ctl的通过率呢90%往上了，白名单比赛的通过率也是在青少年编程行业里面的top1啊，今年的奥林匹克竞赛，也就是信奥赛，更是拿到了1/2的金牌。"],"durs":[18.6]},"P36":{"sents":["包括家长那边的用户心声，体验感也非常的好啊，第一个就是课程设计，好孩子很喜欢第二个图片呢，展示的是孩子很喜欢课程，并且能够帮助到校内的数学和英语了，第三个图片展示的是来帮助孩子逻辑性提高了，并且还没有读小学呢，都可以算30以内的加减法了。"],"durs":[22.968]},"P37":{"sents":["最后给大家展示一下我们核桃的教育理念，让每个孩子爱学习，会学习，让优质的教育触手可及。"],"durs":[9.048]},"P38":{"sents":["好啦，那我们今天的课程体系的这节课就结束了，大家来填写一下问卷吧！"],"durs":[6.504]}}};
+const PASS = 0.6; // 合格线：取自「合格线与重学规则」表「阶段合格线 60%」
+const CFG = {"key":"kcxt-course-v1","title":"核桃课程体系","tag":"图形化 · 课导培训","hero":"P01","titles":{}};
+const KEY = CFG.key;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- 课程结构 ---------- */
+const STAGES = [];
+for (const p of DATA.pages) {
+  let s = STAGES.find(x => x.name === p.stage);
+  if (!s) { s = {name:p.stage, num:+(/阶段\s*(\d+)/.exec(p.stage)||[0,STAGES.length+1])[1], pages:[]}; STAGES.push(s); }
+  s.pages.push(p);
+}
+const TITLES = CFG.titles || {};
+for (const s of STAGES) s.quiz = DATA.qs.filter(q => q.type === '阶段练习题' && +(/阶段\s*(\d+)/.exec(q.chapter)||[])[1] === s.num);
+const FINAL = DATA.qs.filter(q => q.type === '本章综合测试题');
+
+/* ---------- 学习记录（仅存本机浏览器） ---------- */
+let st;
+function fresh(){ return {name:'', team:'', sid:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), unlocked:0, heard:{}, passed:{}, tries:{}, best:{}, final:null, finalTries:0, view:'home', cur:{s:0,p:0}, stageSec:{}}; }
+try { st = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch(e) { st = fresh(); }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
+if (!st.sid) st.sid = 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+if (!st.stageSec) st.stageSec = {};
+
+/* ---------- 学习数据上报（飞书多维表格 Webhook，实时写入） ---------- */
+const HOOK = 'https://wrpnn3mat2.feishu.cn/base/automation/webhook/event/Z0UnaFjXvwZxHrhrmiFcMjSJnEd';
+const pad = n => String(n).padStart(2,'0');
+function nowStr(){ const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+function stageLabel(i){ const s = STAGES[i]; return s ? (s.name + (TITLES[s.num] ? ' ' + TITLES[s.num] : '')) : ''; }
+const mins = sec => Math.round((sec||0)/6)/10;
+/* 每个关卡的过程数据：play=实际播放秒数 occ=占用秒数 pn/ps=暂停次数/秒 kn/ks=卡顿次数/秒 */
+function stat(k){ st.stat = st.stat || {}; return st.stat[k] = st.stat[k] || {play:0, occ:0, pn:0, ps:0, kn:0, ks:0}; }
+function curKey(){ return st.view === 'quiz' ? (st.quiz === 'final' ? 'f' : st.quiz) : st.cur.s; }
+function stageStatusText(k){
+  const done = k === 'f' ? !!(st.final && st.final.pass) : !!st.passed[k];
+  if (done) return '已完成';
+  if ((st.view === 'learn' || st.view === 'quiz') && String(curKey()) === String(k)) return '进行中';
+  const s = st.stat && st.stat[k];
+  return s && s.occ > 0 ? '进行中' : '未开始';
+}
+function snapshot(online){
+  const keys = [0,1,2,3,'f'], sum = f => keys.reduce((a,k) => a + ((st.stat&&st.stat[k]&&st.stat[k][f])||0), 0);
+  const play = sum('play'), occ = sum('occ');
+  const sc = i => st.best[i] != null ? `${st.best[i]}/${STAGES[i].quiz.length}` : '';
+  const cur = st.view === 'quiz' ? (st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz) + '·小测') : (st.view === 'learn' ? stageLabel(st.cur.s) : '课程首页');
+  const cp = st.view === 'learn' ? (curPageSafe()||{}).p || '' : '';
+  return {online: online || '学习中', cur_stage:cur, cur_page:cp,
+    st1:stageStatusText(0), st2:stageStatusText(1), st3:stageStatusText(2), st4:stageStatusText(3), stf:stageStatusText('f'),
+    sc1:sc(0), sc2:sc(1), sc3:sc(2), scf: st.final ? `${st.final.score}/${FINAL.length}` : '',
+    play_min:mins(play), occ_min:mins(occ), gap_min:mins(Math.max(0, occ-play)),
+    pause_n:sum('pn'), pause_min:mins(sum('ps')), stall_n:sum('kn'), stall_min:mins(sum('ks')),
+    relearn_n:Object.values(st.relearnCnt||{}).reduce((a,b)=>a+b,0),
+    quiz_switch_n:sum('qn'), quiz_switch_min:mins(sum('qs'))};
+}
+/* 第二个 Webhook：学员第一次出现时，在「学员实时状态」表新建他的那一行 */
+const HOOK_NEW = 'https://wrpnn3mat2.feishu.cn/base/automation/webhook/event/HLe6aYJ3Qwv8GNhw02NcO2XPn2I';
+function post(url, body){
+  let ok = false;
+  try { ok = navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], {type:'text/plain;charset=UTF-8'})); } catch(e) {}
+  if (!ok) { try { fetch(url, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=UTF-8'}, body}); } catch(e) {} }
+}
+/* 发送队列：每条至少间隔 1.2 秒，保证飞书按顺序更新「学员实时状态」那一行；
+   新学员的状态行刚创建的 5 秒内先排队，避免更新时那一行还不存在 */
+let rowReadyAt = 0, lastSent = 0, outbox = [], pumpTimer = null;
+function pump(){
+  pumpTimer = null;
+  if (!outbox.length) return;
+  const wait = Math.max(rowReadyAt - Date.now(), lastSent + 1200 - Date.now());
+  if (wait > 0) { pumpTimer = setTimeout(pump, wait); return; }
+  post(HOOK, outbox.shift()); lastSent = Date.now();
+  if (outbox.length) pumpTimer = setTimeout(pump, 1200);
+}
+function report(ev, online){
+  if (!st.name) return;
+  const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid}, ev, snapshot(online));
+  const body = JSON.stringify(rec);
+  if (!st.rowCreated) { post(HOOK_NEW, body); st.rowCreated = true; save(); rowReadyAt = Date.now() + 5000; }
+  outbox.push(body);
+  if (online === '已离开') {
+    // 关页面时立刻全部发出。飞书会并行处理，为防止较早的记录后到、把状态行改回「学习中」，
+    // 排队中的每条记录都换成这一刻的最新状态（明细里的动作、详情不变）
+    const latest = snapshot('已离开');
+    while (outbox.length) post(HOOK, JSON.stringify(Object.assign(JSON.parse(outbox.shift()), latest)));
+    return;
+  }
+  if (!pumpTimer) pump();
+}
+/* 实际收听时长：只在播放时累计，按真实时间计（倍速播放不重复计） */
+let pageSec = 0, lastT = null;
+function flushPage(event){
+  const p = curPageSafe();
+  if (p && pageSec >= 3) report({event, stage:stageLabel(st.cur.s), page:p.p, minutes:mins(pageSec), detail:p.topic});
+  pageSec = 0;
+}
+function curPageSafe(){ try { return STAGES[st.cur.s].pages[st.cur.p]; } catch(e) { return null; } }
+let leftSent = false;
+function leaveCourse(){
+  if (leftSent || !st.name) return; leftSent = true;
+  if (st.view === 'learn') { endPause(false); flushPage('中途离开'); }
+  endQuizAway(false);
+  save();
+  const where = st.view === 'quiz' ? '测试中' : st.view === 'learn' ? '听课中' : '课程首页';
+  report({event:'离开课程', stage: st.view === 'home' ? '' : stageLabel(st.cur.s), page: st.view === 'learn' ? ((curPageSafe()||{}).p||'') : '', detail:`在${where}关闭或离开网页`}, '已离开');
+}
+// 不论停在哪个界面（含课程首页），关网页都上报「已离开」；pagehide 不触发的浏览器用 beforeunload 兜底
+window.addEventListener('pagehide', leaveCourse);
+window.addEventListener('beforeunload', leaveCourse);
+window.addEventListener('pageshow', e => { if (e.persisted) { leftSent = false; report({event:'进入课程', detail:'返回网页'}); } });
+
+/* 小测中切屏：不能暂停答题，但要记录每次离开和离开多久，并提示学员 */
+let quizAwayAt = null;
+function quizActive(){ return st.view === 'quiz' && quizState && !quizState.result; }
+function quizAwayNow(){ return document.hidden || !document.hasFocus(); }
+function startQuizAway(){
+  if (quizAwayAt != null || !quizActive() || !quizAwayNow()) return;
+  quizAwayAt = Date.now();
+  const s = stat(curKey()); s.qn = (s.qn||0) + 1;
+  report({event:'测试中切屏', stage: st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz), detail:`本次测试第 ${s.qn} 次切屏（${document.hidden ? '切出页面' : '切到其他窗口'}）`});
+}
+function endQuizAway(doReport){
+  if (quizAwayAt == null) return;
+  const sec = (Date.now() - quizAwayAt)/1000; quizAwayAt = null;
+  const s = stat(curKey()); s.qs = (s.qs||0) + sec;
+  if (doReport) report({event:'回到测试', stage: st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz), detail:`离开 ${Math.round(sec)} 秒`});
+  const w = $('#quizWarn'); if (w) { w.hidden = false; w.textContent = `⚠ 测试期间请不要切屏。本关测试已切屏 ${s.qn} 次、共离开 ${Math.round(s.qs)} 秒，已同步给培训老师。`; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) startQuizAway(); else if (document.hasFocus()) endQuizAway(true); });
+window.addEventListener('blur', startQuizAway);
+window.addEventListener('focus', () => endQuizAway(true));
+setInterval(() => { if (quizActive()) { if (quizAwayNow()) startQuizAway(); else endQuizAway(true); } }, 1000);
+/* 占用时长：停留在某关卡（听课或做小测）的全部时间，含暂停、切走 */
+let tickAt = Date.now();
+setInterval(() => {
+  const now = Date.now(), dt = Math.min((now - tickAt)/1000, 70); tickAt = now;
+  if (st.name && (st.view === 'learn' || st.view === 'quiz')) { stat(curKey()).occ += dt; if (Math.random() < 0.1) save(); }
+}, 1000);
+/* 暂停：学员主动暂停或切走窗口导致的暂停（翻页、听完不算） */
+let navPause = false, pauseAt = null, pauseWhy = '';
+function endPause(doReport){
+  if (pauseAt == null) return;
+  const sec = (Date.now() - pauseAt)/1000; pauseAt = null;
+  stat(st.cur.s).ps += sec;
+  if (doReport) report({event:'继续播放', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:`暂停 ${Math.round(sec)} 秒（${pauseWhy}）`});
+}
+/* 卡顿：播放中因网络缓冲停住 */
+let stallAt = null;
+function endStall(){
+  if (stallAt == null) return;
+  const sec = (Date.now() - stallAt)/1000; stallAt = null;
+  if (sec < 0.8) return;
+  const s = stat(st.cur.s); s.kn += 1; s.ks += sec;
+  report({event:'卡顿', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:`缓冲卡顿 ${sec.toFixed(1)} 秒`});
+}
+
+/* ---------- 音频播放 ---------- */
+const au = $('#au');
+let rate = 1, playing = false, pendingAfter = null;
+function pageTiming(p){ return DATA.timing[p.p]; }
+function sentAt(p, t){
+  const tm = pageTiming(p); let acc = 0;
+  for (let i=0;i<tm.durs.length;i++){ acc += tm.durs[i]; if (t < acc) return i; }
+  return tm.durs.length-1;
+}
+au.addEventListener('timeupdate', () => {
+  if (st.view !== 'learn') return;
+  if (!au.paused && lastT != null) { const dt = au.currentTime - lastT; if (dt > 0 && dt < 3) { const real = dt/(au.playbackRate||1); pageSec += real; st.stageSec[st.cur.s] = (st.stageSec[st.cur.s]||0) + real; stat(st.cur.s).play += real; } }
+  lastT = au.currentTime;
+  const p = curPage(); const tm = pageTiming(p);
+  const total = tm.durs.reduce((a,b)=>a+b,0);
+  const i = sentAt(p, au.currentTime);
+  const sub = $('#sub'); if (sub && sub.dataset.i != i){ sub.dataset.i = i; sub.textContent = tm.sents[i].trim(); }
+  const bar = $('#progfill'); if (bar) bar.style.width = (100*au.currentTime/total).toFixed(1)+'%';
+  const tt = $('#time'); if (tt) tt.textContent = fmt(au.currentTime)+' / '+fmt(total);
+});
+au.addEventListener('ended', () => { playing = false; updPlayBtn(); onPageEnd(); });
+au.addEventListener('pause', () => {
+  playing = false; updPlayBtn(); endStall();
+  const atEnd = au.ended || (au.duration && au.currentTime >= au.duration - 0.3);
+  if (navPause || atEnd || st.view !== 'learn') { navPause = false; return; }
+  const s = stat(st.cur.s); s.pn += 1; pauseAt = Date.now(); pauseWhy = autoWhy || (document.hidden ? '切出页面自动暂停' : '主动暂停'); autoWhy = '';
+  report({event:'暂停', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:pauseWhy});
+});
+au.addEventListener('play', () => { playing = true; updPlayBtn(); const v=$('#veil'); if(v) v.hidden = true; endPause(true); });
+au.addEventListener('waiting', () => { if (!au.paused && au.currentTime > 0.5 && stallAt == null) stallAt = Date.now(); });  // 每页开头的首次加载不算卡顿
+au.addEventListener('playing', endStall);
+function fmt(t){ t = Math.max(0, Math.floor(t)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
+function play(){ au.playbackRate = rate; au.play().catch(() => { const v=$('#veil'); if(v) v.hidden=false; }); }
+function updPlayBtn(){ const b = $('#pp'); if (b) b.textContent = playing ? '暂停' : '播放'; }
+
+/* 切走自动暂停——防挂机。两种情况都算：
+   1) 页面被隐藏（最小化、切标签页、被完全挡住）；
+   2) 浏览器窗口失去焦点（点到了 WPS、微信等其他窗口，哪怕只挡住一部分） */
+let autoWhy = '';
+function autoPause(why){
+  if (!playing) return;
+  autoWhy = why; au.pause();
+  const v = $('#veil'); if (v) { v.hidden = false; $('#veilBtn').textContent = '检测到你切到了其他窗口，已暂停 · 点我继续'; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause('切出页面自动暂停'); });
+window.addEventListener('blur', () => { autoPause('切到其他窗口自动暂停'); });
+/* 兜底：个别环境 blur 不触发时，每秒检查一次窗口焦点 */
+setInterval(() => { if (playing && !document.hasFocus()) autoPause('切到其他窗口自动暂停'); }, 1000);
+
+/* ---------- 视图 ---------- */
+function curStage(){ return STAGES[st.cur.s]; }
+function curPage(){ return curStage().pages[st.cur.p]; }
+function stageStatus(i){
+  if (st.passed[i]) return 'pass';
+  if (i <= st.unlocked) return 'open';
+  return 'lock';
+}
+function mapHTML(active){
+  const nodes = STAGES.map((s,i) => {
+    const ss = stageStatus(i);
+    const sub = ss==='pass' ? ('已过关'+(st.best[i]!=null?' · '+st.best[i]+'/'+s.quiz.length:'')) : ss==='open' ? (s.quiz.length?'学完测 '+s.quiz.length+' 题':'学完解锁综合测试') : '未解锁';
+    return `<button class="node ${ss} ${active===i?'cur':''}" data-go="${i}" ${ss==='lock'?'disabled':''}>
+      <span class="k">阶段 ${s.num}</span><span class="t">${esc(TITLES[s.num]||("阶段 "+s.num))}</span><span class="s">${sub}</span></button>`;
+  });
+  const fOpen = STAGES.every((s,i)=>st.passed[i]);
+  const fs = st.final && st.final.pass ? '已通过 · '+st.final.score+'/'+FINAL.length : fOpen ? FINAL.length+' 题 · 待作答' : '全部阶段过关后解锁';
+  nodes.push(`<button class="node ${st.final&&st.final.pass?'pass':fOpen?'open':'lock'} ${active==='final'?'cur':''}" data-final ${fOpen?'':'disabled'}>
+    <span class="k">结业</span><span class="t">本章综合测试</span><span class="s">${fs}</span></button>`);
+  return `<nav class="map" aria-label="闯关进度">${nodes.join('')}</nav>`;
+}
+function loopHTML(on){
+  const w = ['学一段','练一题','测一轮','过一关','进一步'];
+  return `<div class="loop" aria-label="学习闭环">${w.map((x,i)=>`<span class="${i===on?'on':''}">${x}</span>`).join('<i>→</i>')}</div>`;
+}
+function headerHTML(){
+  return `<header><div class="brand"><h1>${esc(CFG.title)}</h1><span class="tag">${esc(CFG.tag)}</span></div>
+    <div class="who">${st.name?('学员：'+esc(st.name)+(st.team?'（'+esc(st.team)+'）':'')+' · '):''}<button class="btn ghost" style="padding:4px 10px;font-size:13px" data-home>课程首页</button></div></header>`;
+}
+function bindCommon(){
+  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => startStage(+b.dataset.go));
+  const f = document.querySelector('[data-final]'); if (f) f.onclick = () => showQuiz('final');
+  const h = document.querySelector('[data-home]'); if (h) h.onclick = () => { navStop(); st.view='home'; save(); report({event:'回到首页'}); render(); };
+}
+
+function render(){
+  if (st.view === 'learn') return renderLearn();
+  if (st.view === 'quiz') return renderQuiz();
+  renderHome();
+}
+
+function renderHome(){
+  const totalMin = Math.round(Object.values(DATA.timing).reduce((a,t)=>a+t.durs.reduce((x,y)=>x+y,0),0)/60);
+  const started = st.name;
+  const done = st.final && st.final.pass;
+  $('#app').innerHTML = `${headerHTML()}
+  <section class="card hero">
+    <img src="slides/${CFG.hero}.png" alt="${esc(CFG.title)}">
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+      <h2 style="font-size:22px">${esc(CFG.title)}</h2>
+      <p class="muted" style="margin:0">共 ${STAGES.length} 个学习板块、${DATA.pages.length} 页、约 ${totalMin} 分钟讲解。讲解中穿插随堂互动题；每个阶段学完做 5 题小测，正确率达 ${Math.round(PASS*100)}% 才解锁下一阶段，未达标需重学本阶段。</p>
+      ${started ? `<div class="row" style="justify-content:flex-start">
+          <button class="btn" id="resume">${done?'回看课程':'继续学习'}</button>
+          ${done?'<button class="btn soft" id="cert">查看成绩单</button>':''}
+          <button class="btn ghost" id="reset">换人 / 重新开始</button></div>`
+      : `<form id="nameForm"><label for="nm">学员姓名</label>
+          <input id="nm" required maxlength="20" placeholder="请输入真实姓名" autocomplete="name">
+          <label for="tm">职场 / 团队</label>
+          <input id="tm" required maxlength="20" placeholder="如：武汉、汇诚" list="teams" autocomplete="off">
+          <datalist id="teams"><option value="武汉"><option value="汇诚"><option value="国润"><option value="长春"></datalist>
+          <button class="btn" type="submit">开始学习</button></form>`}
+      <p class="rule" id="resetMsg" hidden></p>
+    </div>
+  </section>
+  ${loopHTML(-1)}
+  ${mapHTML(-1)}
+  <section class="card"><h3 style="font-size:16px;margin-bottom:8px">上课须知</h3>
+    <ol class="steps">
+      <li>请打开声音。每页 PPT 配有老师讲解，字幕同步显示讲解原文。</li>
+      <li>当前页讲完才能进入下一页；切到别的窗口会自动暂停。</li>
+      <li>带 ✎ 的页面讲完会弹出互动题，答错可能需要重听本页。</li>
+      <li>阶段小测 5 题，答对 ${Math.ceil(5*PASS)} 题及以上过关；未过关需重学本阶段后再测。</li>
+      <li>全部阶段过关后，解锁本章综合测试（${FINAL.length} 题）。</li>
+      <li>你的姓名、职场、各页学习时长和测试成绩会同步给培训老师。</li>
+    </ol></section>`;
+  bindCommon();
+  const f = $('#nameForm');
+  if (f) f.onsubmit = e => { e.preventDefault(); const v = $('#nm').value.trim(), t = $('#tm').value.trim(); if(!v||!t) return; st.name = v; st.team = t; save();
+    report({event:'进入课程', detail:'首次进入'}); startStage(0); };
+  const r = $('#resume'); if (r) r.onclick = () => { report({event:'进入课程', detail:'继续学习'}); startStage(Math.min(st.unlocked, STAGES.length-1), true); };
+  const c = $('#cert'); if (c) c.onclick = () => showQuiz('final');
+  const x = $('#reset'); if (x) x.onclick = () => {
+    if (x.dataset.armed){ st = fresh(); save(); render(); return; }
+    x.dataset.armed = 1; x.textContent = '再点一次确认清空记录';
+    const m = $('#resetMsg'); m.hidden = false; m.textContent = '清空后本机的学习进度和成绩都会删除。';
+  };
+}
+
+function startStage(i, resume){
+  if (stageStatus(i) === 'lock') return;
+  if (st.cur.s !== i || !resume) {
+    // 进入阶段：从第一页未听完的页开始
+    const s = STAGES[i]; let p = s.pages.findIndex(pg => !st.heard[pg.p]); if (p < 0) p = 0;
+    st.cur = {s:i, p};
+  }
+  st.view = 'learn'; save(); renderLearn(true);
+}
+
+function renderLearn(autoplay){
+  const s = curStage(), p = curPage();
+  const tm = pageTiming(p);
+  const total = tm.durs.reduce((a,b)=>a+b,0);
+  const heard = !!st.heard[p.p];
+  $('#app').innerHTML = `${headerHTML()}
+  ${mapHTML(st.cur.s)}
+  ${loopHTML(0)}
+  <div class="stage-head"><h2>阶段 ${s.num}${TITLES[s.num] ? " · " + esc(TITLES[s.num]) : ""}　<span class="muted" style="font-weight:400;font-size:15px">${p.p} ${esc(p.topic)}</span></h2>
+    <span class="time">第 ${st.cur.p+1} / ${s.pages.length} 页</span></div>
+  <div class="slide"><img src="slides/${p.p}.png" alt="${esc(p.p+' '+p.topic)}">
+    <div class="veil" id="veil" ${autoplay?'hidden':''}><button class="btn" id="veilBtn">▶ 点击播放讲解</button></div></div>
+  <div class="sub" id="sub" aria-live="polite">${esc(tm.sents[0].trim())}</div>
+  <div class="bar">
+    <button class="btn ghost" id="prev" ${st.cur.p===0?'disabled':''}>上一页</button>
+    <button class="btn" id="pp">播放</button>
+    <button class="btn ghost" id="again">重听本页</button>
+    <div class="prog" aria-hidden="true"><div id="progfill"></div></div>
+    <span class="time" id="time">0:00 / ${fmt(total)}</span>
+    <div class="speed" role="group" aria-label="语速">${[1,1.25,1.5].map(r=>`<button data-r="${r}" class="${r===rate?'on':''}">${r}x</button>`).join('')}</div>
+    <button class="btn" id="next" ${heard?'':'disabled'}>${st.cur.p===s.pages.length-1?(s.quiz.length?'去做阶段小测':'完成本阶段'):'下一页'}</button>
+  </div>
+  <div class="dots">${s.pages.map((pg,i)=>`<button class="dot ${st.heard[pg.p]?'heard':''} ${i===st.cur.p?'now':''} ${pg.interact?'q':''}" data-pg="${i}" ${(st.heard[pg.p]||i===st.cur.p)?'':'disabled'} title="${esc(pg.topic)}">${pg.p}</button>`).join('')}</div>
+  <details class="full"><summary>展开本页讲解全文</summary><p>${esc(p.script)}</p></details>`;
+  bindCommon();
+  au.src = 'audio/'+p.p+'.mp3';
+  au.currentTime = 0; lastT = 0;
+  report({event:'进入页面', stage:stageLabel(st.cur.s), page:p.p, detail:p.topic});
+  $('#veilBtn').onclick = play;
+  $('#pp').onclick = () => playing ? au.pause() : play();
+  $('#again').onclick = () => { au.currentTime = 0; play(); };
+  $('#prev').onclick = () => goPage(st.cur.p-1);
+  $('#next').onclick = () => nextPage();
+  document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => goPage(+b.dataset.pg));
+  document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { rate = +b.dataset.r; au.playbackRate = rate;
+    document.querySelectorAll('[data-r]').forEach(x=>x.classList.toggle('on', x===b)); });
+  if (autoplay) play();
+}
+function navStop(){ endPause(false); if (!au.paused) { navPause = true; au.pause(); } }
+function goPage(i){ navStop(); flushPage('学习页面(未听完)'); st.cur.p = i; save(); renderLearn(true); }
+function nextPage(){
+  const s = curStage();
+  if (st.cur.p < s.pages.length-1) return goPage(st.cur.p+1);
+  navStop();
+  if (s.quiz.length) return showQuiz(st.cur.s);
+  // 无小测的阶段（成果验证）：听完即过关
+  const firstDone = !st.passed[st.cur.s];
+  st.passed[st.cur.s] = true; st.unlocked = Math.max(st.unlocked, st.cur.s+1); save();
+  if (firstDone) report({event:'完成阶段', stage:stageLabel(st.cur.s), pass:'是', detail:`本阶段无小测，听完即过关｜${stageDetail(st.cur.s)}`});
+  showQuiz('final');
+}
+function onPageEnd(){
+  const p = curPage();
+  const first = !st.heard[p.p];
+  flushPage(first ? '听完页面' : '重听页面');
+  st.heard[p.p] = true; save();
+  const nb = $('#next'); if (nb) nb.disabled = false;
+  if (pendingAfter) { const f = pendingAfter; pendingAfter = null; return f(); }
+  if (p.interact && (first || !st.answered?.[p.p])) return askInteract(p);
+  setTimeout(() => { if (!playing && st.view==='learn' && curPage()===p && !document.querySelector('.modal')) nextPage(); }, 1200);
+}
+
+/* ---------- 随堂互动题 ---------- */
+function askInteract(p){
+  const it = p.interact;
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="iq">
+    <span class="eyebrow">随堂互动 · ${p.p}</span>
+    <h3 id="iq" style="font-size:18px">${esc(it.q)}</h3>
+    <div class="opts">${it.options.map((o,i)=>`<button class="opt" data-i="${i}"><b>${'ABCD'[i]}</b><span>${esc(o)}</span></button>`).join('')}</div>
+    <div id="ifb"></div><div class="row" id="irow"></div></div>`;
+  document.body.appendChild(m);
+  m.querySelector('.opt').focus();
+  m.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+    const i = +b.dataset.i;
+    m.querySelectorAll('.opt').forEach(x => x.disabled = true);
+    const ok = it.vote || i === it.answer;
+    const fb = m.querySelector('#ifb'), row = m.querySelector('#irow');
+    const close = () => m.remove();
+    st.answered = st.answered || {};
+    report({event:'随堂互动', stage:stageLabel(st.cur.s), page:p.p, score:ok?1:0, total:1, pass:ok?'是':'否', detail:`${it.q}｜选 ${'ABCD'[i]}：${it.options[i]}`});
+    if (ok) {
+      st.answered[p.p] = true; save();
+      b.classList.add('right');
+      fb.innerHTML = `<div class="fb ok">${it.vote?'收到你的选择！':'回答正确！'}</div>`;
+      row.innerHTML = `<button class="btn" id="go">继续听课</button>`;
+      row.querySelector('#go').onclick = () => { close(); nextPage(); };
+      row.querySelector('#go').focus();
+      return;
+    }
+    b.classList.add('wrong');
+    if (it.wrong.startsWith('重讲')) {
+      fb.innerHTML = `<div class="fb no">答错了。再听一遍本页讲解，听完重新作答。</div>`;
+      row.innerHTML = `<button class="btn" id="go">重听本页</button>`;
+      row.querySelector('#go').onclick = () => { close(); au.currentTime = 0; pendingAfter = () => askInteract(p); play(); };
+    } else {
+      m.querySelector(`.opt[data-i="${it.answer}"]`).classList.add('right');
+      st.answered[p.p] = true; save();
+      fb.innerHTML = `<div class="fb no">答错了。正确答案是 ${'ABCD'[it.answer]}：${esc(it.options[it.answer])}</div>`;
+      row.innerHTML = `<button class="btn" id="go">知道了，继续</button>`;
+      row.querySelector('#go').onclick = () => { close(); nextPage(); };
+    }
+    row.querySelector('#go').focus();
+  });
+}
+
+/* ---------- 阶段小测 / 综合测试 ---------- */
+let quizState = null;
+function showQuiz(which){ st.view = 'quiz'; st.quiz = which; save(); quizState = {sel:{}, result:null};
+  report({event:'进入测试', stage: which === 'final' ? '本章综合测试' : stageLabel(which)});
+  renderQuiz(); window.scrollTo(0,0); }
+function stageDetail(k){ const s = stat(k); return `本关播放 ${mins(s.play)} 分｜占用 ${mins(s.occ)} 分｜时间差 ${mins(Math.max(0,s.occ-s.play))} 分｜暂停 ${s.pn} 次 ${mins(s.ps)} 分｜卡顿 ${s.kn} 次 ${mins(s.ks)} 分｜测试中切屏 ${s.qn||0} 次 ${Math.round(s.qs||0)} 秒`; }
+function renderQuiz(){
+  const which = st.quiz; const isFinal = which === 'final';
+  if (!quizState) quizState = {sel:{}, result:null};
+  const qs = isFinal ? FINAL : STAGES[which].quiz;
+  const need = Math.ceil(qs.length*PASS);
+  const r = quizState.result;
+  const title = isFinal ? '本章综合测试' : `阶段 ${STAGES[which].num} 小测${TITLES[STAGES[which].num] ? " · " + TITLES[STAGES[which].num] : ""}`;
+  const passedBefore = isFinal ? (st.final&&st.final.pass) : st.passed[which];
+  let top = '';
+  if (r) {
+    top = `<div class="card" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;border-color:${r.pass?'var(--ok)':'var(--bad)'}">
+      <div class="score" style="color:${r.pass?'var(--ok)':'var(--bad)'}">${r.score}<span style="font-size:20px">/${qs.length}</span></div>
+      <div style="flex:1 1 240px;min-width:0"><h3 style="font-size:18px">${r.pass?(isFinal?'恭喜结业！本章综合测试通过':'过关！下一阶段已解锁'):'未达合格线'}</h3>
+        <p class="muted" style="margin:4px 0 0">${r.pass?'下面是每题的正确答案，可对照复习。':(isFinal?'错题已标出。可回看任一阶段后重新作答。':`错题已标出（不显示答案）。需重学阶段 ${STAGES[which].num} 全部内容后再测。`)}</p></div>
+      <div class="row">${r.pass
+        ? (isFinal ? `<button class="btn ghost" data-home2>回到课程首页</button>` : (which+1<STAGES.length?`<button class="btn" id="nextStage">进入阶段 ${STAGES[which+1].num}</button>`:''))
+        : (isFinal ? `<button class="btn" id="retry">重新作答</button>` : `<button class="btn" id="relearn">重学本阶段</button>`)}</div></div>`;
+  }
+  const cert = isFinal && st.final && st.final.pass ? certHTML() : '';
+  $('#app').innerHTML = `${headerHTML()}${mapHTML(isFinal?'final':which)}${loopHTML(r?(r.pass?4:3):2)}
+  ${cert}${top}
+  <section class="card quiz"><div><span class="eyebrow">${isFinal?'结业测试':'阶段检测'}</span>
+    <h2 style="font-size:20px;margin-top:4px">${esc(title)}</h2>
+    <p class="rule" style="margin:6px 0 0">共 ${qs.length} 题，答对 ${need} 题及以上通过（合格线 ${Math.round(PASS*100)}%）。多选题需全部选对才得分。${passedBefore&&!r?'你已通过，可再次练习。':''}${r?'':'测试期间请不要切屏，切屏会被记录。'}</p>
+    <p class="fb no" id="quizWarn" hidden style="margin:8px 0 0"></p></div>
+    ${qs.map((q,qi)=>{ const multi = q.answer.length>1; const sel = quizState.sel[q.id]||'';
+      const res = r && r.items[q.id];
+      return `<div class="qitem"><div class="qt"><span class="qn">${qi+1}.</span>${esc(q.q)}${multi&&!/多选/.test(q.q)?'（多选）':''}
+        ${res?` <span class="fb ${res.ok?'ok':'no'}" style="display:inline-block;padding:2px 8px;font-size:13px">${res.ok?'✓ 正确':'✗ 错误'}${r.pass&&!res.ok?' · 答案 '+q.answer:''}</span>`:''}</div>
+        <div class="opts">${q.options.map(o=>{
+          let cls = sel.includes(o.k)?'sel':'';
+          if (r && r.pass) { if (q.answer.includes(o.k)) cls='right'; else if (sel.includes(o.k)) cls='wrong'; }
+          return `<button class="opt ${cls}" data-q="${q.id}" data-k="${o.k}" ${r?'disabled':''} aria-pressed="${sel.includes(o.k)}"><b>${o.k}</b><span>${esc(o.t)}</span></button>`; }).join('')}</div></div>`; }).join('')}
+    ${r?'':`<div class="row"><span class="rule" id="qmsg" style="margin-right:auto"></span><button class="btn" id="submit">提交答卷</button></div>`}
+  </section>`;
+  bindCommon();
+  { const s = stat(curKey()); const w = $('#quizWarn'); if (w && !r && s.qn) { w.hidden = false; w.textContent = `⚠ 测试期间请不要切屏。本关测试已切屏 ${s.qn} 次、共离开 ${Math.round(s.qs||0)} 秒，已同步给培训老师。`; } }
+  document.querySelectorAll('.opt[data-q]').forEach(b => b.onclick = () => {
+    const q = qs.find(x => x.id === b.dataset.q); const k = b.dataset.k; let sel = quizState.sel[q.id]||'';
+    if (q.answer.length>1) sel = sel.includes(k) ? sel.replace(k,'') : [...sel+k].sort().join(''); else sel = k;
+    quizState.sel[q.id] = sel;
+    b.parentElement.querySelectorAll('.opt').forEach(x => { const on = sel.includes(x.dataset.k); x.classList.toggle('sel', on); x.setAttribute('aria-pressed', on); });
+  });
+  const sb = $('#submit'); if (sb) sb.onclick = () => {
+    const miss = qs.filter(q => !quizState.sel[q.id]);
+    if (miss.length) { $('#qmsg').textContent = `还有 ${miss.length} 题没作答（第 ${miss.map(q=>qs.indexOf(q)+1).join('、')} 题）`; return; }
+    const items = {}; let score = 0;
+    for (const q of qs) { const ok = quizState.sel[q.id] === q.answer; items[q.id] = {ok}; if (ok) score++; }
+    const pass = score >= need;
+    quizState.result = {score, pass, items};
+    if (isFinal) {
+      st.finalTries = (st.finalTries||0)+1;
+      if (pass && !(st.final&&st.final.pass)) st.final = {score, pass, at:new Date().toLocaleString('zh-CN'), tries:st.finalTries};
+      else if (!st.final || !st.final.pass) st.final = {score, pass, tries:st.finalTries};
+    } else {
+      st.tries[which] = (st.tries[which]||0)+1;
+      st.best[which] = Math.max(st.best[which]||0, score);
+      if (pass) { st.passed[which] = true; st.unlocked = Math.max(st.unlocked, which+1); }
+    }
+    const wrongIds = qs.filter(q => !items[q.id].ok).map(q => q.id).join('、') || '无';
+    st.relearnCnt = st.relearnCnt || {};
+    if (isFinal) {
+      report({event:'综合测试', stage:'本章综合测试', score, total:qs.length, pass:pass?'是':'否', relearn:'否', detail:`第${st.finalTries}次作答｜错题：${wrongIds}｜${stageDetail('f')}`});
+      if (pass && st.final.tries === st.finalTries) {
+        const totalMin = mins(Object.values(st.stageSec||{}).reduce((a,b)=>a+b,0));
+        report({event:'结业', stage:'本章综合测试', minutes:0, score, total:qs.length, pass:'是', detail:`全课累计学习 ${totalMin} 分钟`});
+      }
+    } else {
+      report({event:'阶段小测', stage:stageLabel(which), score, total:qs.length, pass:pass?'是':'否', relearn:(st.relearnCnt[which]||0)>0?'是':'否',
+        detail:`第${st.tries[which]}次作答｜错题：${wrongIds}｜已重学 ${st.relearnCnt[which]||0} 次｜${stageDetail(which)}`});
+    }
+    save(); renderQuiz(); window.scrollTo(0,0);
+  };
+  const rl = $('#relearn'); if (rl) rl.onclick = () => {
+    // 重学：本阶段所有页重新听
+    for (const pg of STAGES[which].pages) { delete st.heard[pg.p]; if (st.answered) delete st.answered[pg.p]; }
+    st.relearnCnt = st.relearnCnt || {}; st.relearnCnt[which] = (st.relearnCnt[which]||0) + 1;
+    report({event:'触发重学', stage:stageLabel(which), score:quizState&&quizState.result?quizState.result.score:0, total:STAGES[which].quiz.length, pass:'否', relearn:'是', detail:`第${st.relearnCnt[which]}次重学`});
+    st.cur = {s:which, p:0}; st.view='learn'; quizState=null; save(); renderLearn(true);
+  };
+  const rt = $('#retry'); if (rt) rt.onclick = () => { quizState = null; renderQuiz(); window.scrollTo(0,0); };
+  const ns = $('#nextStage'); if (ns) ns.onclick = () => { quizState=null; startStage(which+1); };
+  const h2 = document.querySelector('[data-home2]'); if (h2) h2.onclick = () => { st.view='home'; quizState=null; save(); render(); };
+}
+function certHTML(){
+  const rows = STAGES.map((s,i)=>`<tr><td>阶段 ${s.num}${TITLES[s.num] ? " · " + esc(TITLES[s.num]) : ""}</td><td class="n">${s.quiz.length?(st.best[i]??'-')+' / '+s.quiz.length:'听课完成'}</td><td class="n">${s.quiz.length?(st.tries[i]||0)+' 次':'-'}</td></tr>`).join('');
+  return `<section class="card"><span class="eyebrow">成绩单</span>
+    <h2 style="font-size:20px;margin:4px 0 10px">${esc(st.name)} · ${esc(CFG.title)} 已结业</h2>
+    <div class="tbl"><table><thead><tr><th>板块</th><th>最高分</th><th>作答次数</th></tr></thead><tbody>${rows}
+    <tr><td><b>本章综合测试</b></td><td class="n"><b>${st.final.score} / ${FINAL.length}</b></td><td class="n">${st.final.tries} 次</td></tr></tbody></table></div>
+    <p class="rule" style="margin:10px 0 0">通过时间：${esc(st.final.at||'')}　可截图此成绩单提交给培训老师。</p></section>`;
+}
+
+render();
+</script>
+
+</body></html>
