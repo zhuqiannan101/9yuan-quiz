@@ -268,7 +268,7 @@ au.addEventListener('pause', () => {
   playing = false; updPlayBtn(); endStall();
   const atEnd = au.ended || (au.duration && au.currentTime >= au.duration - 0.3);
   if (navPause || atEnd || st.view !== 'learn') { navPause = false; return; }
-  const s = stat(st.cur.s); s.pn += 1; pauseAt = Date.now(); pauseWhy = document.hidden ? '切出页面自动暂停' : '主动暂停';
+  const s = stat(st.cur.s); s.pn += 1; pauseAt = Date.now(); pauseWhy = autoWhy || (document.hidden ? '切出页面自动暂停' : '主动暂停'); autoWhy = '';
   report({event:'暂停', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:pauseWhy});
 });
 au.addEventListener('play', () => { playing = true; updPlayBtn(); const v=$('#veil'); if(v) v.hidden = true; endPause(true); });
@@ -278,10 +278,19 @@ function fmt(t){ t = Math.max(0, Math.floor(t)); return Math.floor(t/60)+':'+Str
 function play(){ au.playbackRate = rate; au.play().catch(() => { const v=$('#veil'); if(v) v.hidden=false; }); }
 function updPlayBtn(){ const b = $('#pp'); if (b) b.textContent = playing ? '暂停' : '播放'; }
 
-/* 切到别的窗口自动暂停——防挂机 */
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && playing) { au.pause(); const v=$('#veil'); if (v){ v.hidden=false; $('#veilBtn').textContent='检测到离开页面，已暂停 · 点我继续'; } }
-});
+/* 切走自动暂停——防挂机。两种情况都算：
+   1) 页面被隐藏（最小化、切标签页、被完全挡住）；
+   2) 浏览器窗口失去焦点（点到了 WPS、微信等其他窗口，哪怕只挡住一部分） */
+let autoWhy = '';
+function autoPause(why){
+  if (!playing) return;
+  autoWhy = why; au.pause();
+  const v = $('#veil'); if (v) { v.hidden = false; $('#veilBtn').textContent = '检测到你切到了其他窗口，已暂停 · 点我继续'; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause('切出页面自动暂停'); });
+window.addEventListener('blur', () => { autoPause('切到其他窗口自动暂停'); });
+/* 兜底：个别环境 blur 不触发时，每秒检查一次窗口焦点 */
+setInterval(() => { if (playing && !document.hasFocus()) autoPause('切到其他窗口自动暂停'); }, 1000);
 
 /* ---------- 视图 ---------- */
 function curStage(){ return STAGES[st.cur.s]; }
