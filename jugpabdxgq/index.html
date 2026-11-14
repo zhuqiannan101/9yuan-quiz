@@ -157,13 +157,55 @@ const pad = n => String(n).padStart(2,'0');
 function nowStr(){ const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
 function stageLabel(i){ const s = STAGES[i]; return s ? `阶段${s.num} ${TITLES[s.num]||''}` : ''; }
 const mins = sec => Math.round((sec||0)/6)/10;
-function report(ev){
-  if (!st.name) return;
-  const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid}, ev);
-  const body = JSON.stringify(rec);
+/* 每个关卡的过程数据：play=实际播放秒数 occ=占用秒数 pn/ps=暂停次数/秒 kn/ks=卡顿次数/秒 */
+function stat(k){ st.stat = st.stat || {}; return st.stat[k] = st.stat[k] || {play:0, occ:0, pn:0, ps:0, kn:0, ks:0}; }
+function curKey(){ return st.view === 'quiz' ? (st.quiz === 'final' ? 'f' : st.quiz) : st.cur.s; }
+function stageStatusText(k){
+  const done = k === 'f' ? !!(st.final && st.final.pass) : !!st.passed[k];
+  if (done) return '已完成';
+  if ((st.view === 'learn' || st.view === 'quiz') && String(curKey()) === String(k)) return '进行中';
+  const s = st.stat && st.stat[k];
+  return s && s.occ > 0 ? '进行中' : '未开始';
+}
+function snapshot(online){
+  const keys = [0,1,2,3,'f'], sum = f => keys.reduce((a,k) => a + ((st.stat&&st.stat[k]&&st.stat[k][f])||0), 0);
+  const play = sum('play'), occ = sum('occ');
+  const sc = i => st.best[i] != null ? `${st.best[i]}/${STAGES[i].quiz.length}` : '';
+  const cur = st.view === 'quiz' ? (st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz) + '·小测') : (st.view === 'learn' ? stageLabel(st.cur.s) : '课程首页');
+  const cp = st.view === 'learn' ? (curPageSafe()||{}).p || '' : '';
+  return {online: online || '学习中', cur_stage:cur, cur_page:cp,
+    st1:stageStatusText(0), st2:stageStatusText(1), st3:stageStatusText(2), st4:stageStatusText(3), stf:stageStatusText('f'),
+    sc1:sc(0), sc2:sc(1), sc3:sc(2), scf: st.final ? `${st.final.score}/${FINAL.length}` : '',
+    play_min:mins(play), occ_min:mins(occ), gap_min:mins(Math.max(0, occ-play)),
+    pause_n:sum('pn'), pause_min:mins(sum('ps')), stall_n:sum('kn'), stall_min:mins(sum('ks')),
+    relearn_n:Object.values(st.relearnCnt||{}).reduce((a,b)=>a+b,0)};
+}
+/* 第二个 Webhook：学员第一次出现时，在「学员实时状态」表新建他的那一行 */
+const HOOK_NEW = 'https://wrpnn3mat2.feishu.cn/base/automation/webhook/event/HLe6aYJ3Qwv8GNhw02NcO2XPn2I';
+function post(url, body){
   let ok = false;
-  try { ok = navigator.sendBeacon && navigator.sendBeacon(HOOK, new Blob([body], {type:'text/plain;charset=UTF-8'})); } catch(e) {}
-  if (!ok) { try { fetch(HOOK, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=UTF-8'}, body}); } catch(e) {} }
+  try { ok = navigator.sendBeacon && navigator.sendBeacon(url, new Blob([body], {type:'text/plain;charset=UTF-8'})); } catch(e) {}
+  if (!ok) { try { fetch(url, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=UTF-8'}, body}); } catch(e) {} }
+}
+/* 发送队列：每条至少间隔 1.2 秒，保证飞书按顺序更新「学员实时状态」那一行；
+   新学员的状态行刚创建的 5 秒内先排队，避免更新时那一行还不存在 */
+let rowReadyAt = 0, lastSent = 0, outbox = [], pumpTimer = null;
+function pump(){
+  pumpTimer = null;
+  if (!outbox.length) return;
+  const wait = Math.max(rowReadyAt - Date.now(), lastSent + 1200 - Date.now());
+  if (wait > 0) { pumpTimer = setTimeout(pump, wait); return; }
+  post(HOOK, outbox.shift()); lastSent = Date.now();
+  if (outbox.length) pumpTimer = setTimeout(pump, 1200);
+}
+function report(ev, online){
+  if (!st.name) return;
+  const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid}, ev, snapshot(online));
+  const body = JSON.stringify(rec);
+  if (!st.rowCreated) { post(HOOK_NEW, body); st.rowCreated = true; save(); rowReadyAt = Date.now() + 5000; }
+  outbox.push(body);
+  if (online === '已离开') { while (outbox.length) post(HOOK, outbox.shift()); return; }  // 关页面时立刻全部发出
+  if (!pumpTimer) pump();
 }
 /* 实际收听时长：只在播放时累计，按真实时间计（倍速播放不重复计） */
 let pageSec = 0, lastT = null;
@@ -173,7 +215,33 @@ function flushPage(event){
   pageSec = 0;
 }
 function curPageSafe(){ try { return STAGES[st.cur.s].pages[st.cur.p]; } catch(e) { return null; } }
-window.addEventListener('pagehide', () => { if (st.view === 'learn') flushPage('中途离开'); });
+window.addEventListener('pagehide', () => {
+  if (st.view === 'learn') { endPause(false); flushPage('中途离开'); }
+  if (st.view === 'learn' || st.view === 'quiz') { save(); report({event:'离开课程', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||''}, '已离开'); }
+});
+/* 占用时长：停留在某关卡（听课或做小测）的全部时间，含暂停、切走 */
+let tickAt = Date.now();
+setInterval(() => {
+  const now = Date.now(), dt = Math.min((now - tickAt)/1000, 70); tickAt = now;
+  if (st.name && (st.view === 'learn' || st.view === 'quiz')) { stat(curKey()).occ += dt; if (Math.random() < 0.1) save(); }
+}, 1000);
+/* 暂停：学员主动暂停或切走窗口导致的暂停（翻页、听完不算） */
+let navPause = false, pauseAt = null, pauseWhy = '';
+function endPause(doReport){
+  if (pauseAt == null) return;
+  const sec = (Date.now() - pauseAt)/1000; pauseAt = null;
+  stat(st.cur.s).ps += sec;
+  if (doReport) report({event:'继续播放', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:`暂停 ${Math.round(sec)} 秒（${pauseWhy}）`});
+}
+/* 卡顿：播放中因网络缓冲停住 */
+let stallAt = null;
+function endStall(){
+  if (stallAt == null) return;
+  const sec = (Date.now() - stallAt)/1000; stallAt = null;
+  if (sec < 0.8) return;
+  const s = stat(st.cur.s); s.kn += 1; s.ks += sec;
+  report({event:'卡顿', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:`缓冲卡顿 ${sec.toFixed(1)} 秒`});
+}
 
 /* ---------- 音频播放 ---------- */
 const au = $('#au');
@@ -186,7 +254,7 @@ function sentAt(p, t){
 }
 au.addEventListener('timeupdate', () => {
   if (st.view !== 'learn') return;
-  if (!au.paused && lastT != null) { const dt = au.currentTime - lastT; if (dt > 0 && dt < 3) { const real = dt/(au.playbackRate||1); pageSec += real; st.stageSec[st.cur.s] = (st.stageSec[st.cur.s]||0) + real; } }
+  if (!au.paused && lastT != null) { const dt = au.currentTime - lastT; if (dt > 0 && dt < 3) { const real = dt/(au.playbackRate||1); pageSec += real; st.stageSec[st.cur.s] = (st.stageSec[st.cur.s]||0) + real; stat(st.cur.s).play += real; } }
   lastT = au.currentTime;
   const p = curPage(); const tm = pageTiming(p);
   const total = tm.durs.reduce((a,b)=>a+b,0);
@@ -196,8 +264,16 @@ au.addEventListener('timeupdate', () => {
   const tt = $('#time'); if (tt) tt.textContent = fmt(au.currentTime)+' / '+fmt(total);
 });
 au.addEventListener('ended', () => { playing = false; updPlayBtn(); onPageEnd(); });
-au.addEventListener('pause', () => { playing = false; updPlayBtn(); });
-au.addEventListener('play', () => { playing = true; updPlayBtn(); const v=$('#veil'); if(v) v.hidden = true; });
+au.addEventListener('pause', () => {
+  playing = false; updPlayBtn(); endStall();
+  const atEnd = au.ended || (au.duration && au.currentTime >= au.duration - 0.3);
+  if (navPause || atEnd || st.view !== 'learn') { navPause = false; return; }
+  const s = stat(st.cur.s); s.pn += 1; pauseAt = Date.now(); pauseWhy = document.hidden ? '切出页面自动暂停' : '主动暂停';
+  report({event:'暂停', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||'', detail:pauseWhy});
+});
+au.addEventListener('play', () => { playing = true; updPlayBtn(); const v=$('#veil'); if(v) v.hidden = true; endPause(true); });
+au.addEventListener('waiting', () => { if (!au.paused && stallAt == null) stallAt = Date.now(); });
+au.addEventListener('playing', endStall);
 function fmt(t){ t = Math.max(0, Math.floor(t)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
 function play(){ au.playbackRate = rate; au.play().catch(() => { const v=$('#veil'); if(v) v.hidden=false; }); }
 function updPlayBtn(){ const b = $('#pp'); if (b) b.textContent = playing ? '暂停' : '播放'; }
@@ -239,7 +315,7 @@ function headerHTML(){
 function bindCommon(){
   document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => startStage(+b.dataset.go));
   const f = document.querySelector('[data-final]'); if (f) f.onclick = () => showQuiz('final');
-  const h = document.querySelector('[data-home]'); if (h) h.onclick = () => { au.pause(); st.view='home'; save(); render(); };
+  const h = document.querySelector('[data-home]'); if (h) h.onclick = () => { navStop(); st.view='home'; save(); report({event:'回到首页'}); render(); };
 }
 
 function render(){
@@ -332,6 +408,7 @@ function renderLearn(autoplay){
   bindCommon();
   au.src = 'audio/'+p.p+'.mp3';
   au.currentTime = 0; lastT = 0;
+  report({event:'进入页面', stage:stageLabel(st.cur.s), page:p.p, detail:p.topic});
   $('#veilBtn').onclick = play;
   $('#pp').onclick = () => playing ? au.pause() : play();
   $('#again').onclick = () => { au.currentTime = 0; play(); };
@@ -342,15 +419,17 @@ function renderLearn(autoplay){
     document.querySelectorAll('[data-r]').forEach(x=>x.classList.toggle('on', x===b)); });
   if (autoplay) play();
 }
-function goPage(i){ au.pause(); flushPage('学习页面(未听完)'); st.cur.p = i; save(); renderLearn(true); }
+function navStop(){ endPause(false); if (!au.paused) { navPause = true; au.pause(); } }
+function goPage(i){ navStop(); flushPage('学习页面(未听完)'); st.cur.p = i; save(); renderLearn(true); }
 function nextPage(){
   const s = curStage();
   if (st.cur.p < s.pages.length-1) return goPage(st.cur.p+1);
-  au.pause();
+  navStop();
   if (s.quiz.length) return showQuiz(st.cur.s);
   // 无小测的阶段（成果验证）：听完即过关
-  if (!st.passed[st.cur.s]) report({event:'完成阶段', stage:stageLabel(st.cur.s), pass:'是', detail:`本阶段无小测，听完即过关｜累计学习 ${mins(st.stageSec[st.cur.s])} 分钟`});
+  const firstDone = !st.passed[st.cur.s];
   st.passed[st.cur.s] = true; st.unlocked = Math.max(st.unlocked, st.cur.s+1); save();
+  if (firstDone) report({event:'完成阶段', stage:stageLabel(st.cur.s), pass:'是', detail:`本阶段无小测，听完即过关｜${stageDetail(st.cur.s)}`});
   showQuiz('final');
 }
 function onPageEnd(){
@@ -410,7 +489,10 @@ function askInteract(p){
 
 /* ---------- 阶段小测 / 综合测试 ---------- */
 let quizState = null;
-function showQuiz(which){ st.view = 'quiz'; st.quiz = which; save(); quizState = {sel:{}, result:null}; renderQuiz(); window.scrollTo(0,0); }
+function showQuiz(which){ st.view = 'quiz'; st.quiz = which; save(); quizState = {sel:{}, result:null};
+  report({event:'进入测试', stage: which === 'final' ? '本章综合测试' : stageLabel(which)});
+  renderQuiz(); window.scrollTo(0,0); }
+function stageDetail(k){ const s = stat(k); return `本关播放 ${mins(s.play)} 分｜占用 ${mins(s.occ)} 分｜时间差 ${mins(Math.max(0,s.occ-s.play))} 分｜暂停 ${s.pn} 次 ${mins(s.ps)} 分｜卡顿 ${s.kn} 次 ${mins(s.ks)} 分`; }
 function renderQuiz(){
   const which = st.quiz; const isFinal = which === 'final';
   if (!quizState) quizState = {sel:{}, result:null};
@@ -471,14 +553,14 @@ function renderQuiz(){
     const wrongIds = qs.filter(q => !items[q.id].ok).map(q => q.id).join('、') || '无';
     st.relearnCnt = st.relearnCnt || {};
     if (isFinal) {
-      report({event:'综合测试', stage:'本章综合测试', score, total:qs.length, pass:pass?'是':'否', relearn:'否', detail:`第${st.finalTries}次作答｜错题：${wrongIds}`});
+      report({event:'综合测试', stage:'本章综合测试', score, total:qs.length, pass:pass?'是':'否', relearn:'否', detail:`第${st.finalTries}次作答｜错题：${wrongIds}｜${stageDetail('f')}`});
       if (pass && st.final.tries === st.finalTries) {
         const totalMin = mins(Object.values(st.stageSec||{}).reduce((a,b)=>a+b,0));
         report({event:'结业', stage:'本章综合测试', minutes:0, score, total:qs.length, pass:'是', detail:`全课累计学习 ${totalMin} 分钟`});
       }
     } else {
       report({event:'阶段小测', stage:stageLabel(which), score, total:qs.length, pass:pass?'是':'否', relearn:(st.relearnCnt[which]||0)>0?'是':'否',
-        detail:`第${st.tries[which]}次作答｜错题：${wrongIds}｜本阶段累计学习 ${mins(st.stageSec[which])} 分钟｜已重学 ${st.relearnCnt[which]||0} 次`});
+        detail:`第${st.tries[which]}次作答｜错题：${wrongIds}｜已重学 ${st.relearnCnt[which]||0} 次｜${stageDetail(which)}`});
     }
     save(); renderQuiz(); window.scrollTo(0,0);
   };
