@@ -178,7 +178,8 @@ function snapshot(online){
     sc1:sc(0), sc2:sc(1), sc3:sc(2), scf: st.final ? `${st.final.score}/${FINAL.length}` : '',
     play_min:mins(play), occ_min:mins(occ), gap_min:mins(Math.max(0, occ-play)),
     pause_n:sum('pn'), pause_min:mins(sum('ps')), stall_n:sum('kn'), stall_min:mins(sum('ks')),
-    relearn_n:Object.values(st.relearnCnt||{}).reduce((a,b)=>a+b,0)};
+    relearn_n:Object.values(st.relearnCnt||{}).reduce((a,b)=>a+b,0),
+    quiz_switch_n:sum('qn'), quiz_switch_min:mins(sum('qs'))};
 }
 /* 第二个 Webhook：学员第一次出现时，在「学员实时状态」表新建他的那一行 */
 const HOOK_NEW = 'https://wrpnn3mat2.feishu.cn/base/automation/webhook/event/HLe6aYJ3Qwv8GNhw02NcO2XPn2I';
@@ -204,7 +205,13 @@ function report(ev, online){
   const body = JSON.stringify(rec);
   if (!st.rowCreated) { post(HOOK_NEW, body); st.rowCreated = true; save(); rowReadyAt = Date.now() + 5000; }
   outbox.push(body);
-  if (online === '已离开') { while (outbox.length) post(HOOK, outbox.shift()); return; }  // 关页面时立刻全部发出
+  if (online === '已离开') {
+    // 关页面时立刻全部发出。飞书会并行处理，为防止较早的记录后到、把状态行改回「学习中」，
+    // 排队中的每条记录都换成这一刻的最新状态（明细里的动作、详情不变）
+    const latest = snapshot('已离开');
+    while (outbox.length) post(HOOK, JSON.stringify(Object.assign(JSON.parse(outbox.shift()), latest)));
+    return;
+  }
   if (!pumpTimer) pump();
 }
 /* 实际收听时长：只在播放时累计，按真实时间计（倍速播放不重复计） */
@@ -215,10 +222,41 @@ function flushPage(event){
   pageSec = 0;
 }
 function curPageSafe(){ try { return STAGES[st.cur.s].pages[st.cur.p]; } catch(e) { return null; } }
-window.addEventListener('pagehide', () => {
+let leftSent = false;
+function leaveCourse(){
+  if (leftSent || !st.name) return; leftSent = true;
   if (st.view === 'learn') { endPause(false); flushPage('中途离开'); }
-  if (st.view === 'learn' || st.view === 'quiz') { save(); report({event:'离开课程', stage:stageLabel(st.cur.s), page:(curPageSafe()||{}).p||''}, '已离开'); }
-});
+  endQuizAway(false);
+  save();
+  const where = st.view === 'quiz' ? '测试中' : st.view === 'learn' ? '听课中' : '课程首页';
+  report({event:'离开课程', stage: st.view === 'home' ? '' : stageLabel(st.cur.s), page: st.view === 'learn' ? ((curPageSafe()||{}).p||'') : '', detail:`在${where}关闭或离开网页`}, '已离开');
+}
+// 不论停在哪个界面（含课程首页），关网页都上报「已离开」；pagehide 不触发的浏览器用 beforeunload 兜底
+window.addEventListener('pagehide', leaveCourse);
+window.addEventListener('beforeunload', leaveCourse);
+window.addEventListener('pageshow', e => { if (e.persisted) { leftSent = false; report({event:'进入课程', detail:'返回网页'}); } });
+
+/* 小测中切屏：不能暂停答题，但要记录每次离开和离开多久，并提示学员 */
+let quizAwayAt = null;
+function quizActive(){ return st.view === 'quiz' && quizState && !quizState.result; }
+function quizAwayNow(){ return document.hidden || !document.hasFocus(); }
+function startQuizAway(){
+  if (quizAwayAt != null || !quizActive() || !quizAwayNow()) return;
+  quizAwayAt = Date.now();
+  const s = stat(curKey()); s.qn = (s.qn||0) + 1;
+  report({event:'测试中切屏', stage: st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz), detail:`本次测试第 ${s.qn} 次切屏（${document.hidden ? '切出页面' : '切到其他窗口'}）`});
+}
+function endQuizAway(doReport){
+  if (quizAwayAt == null) return;
+  const sec = (Date.now() - quizAwayAt)/1000; quizAwayAt = null;
+  const s = stat(curKey()); s.qs = (s.qs||0) + sec;
+  if (doReport) report({event:'回到测试', stage: st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz), detail:`离开 ${Math.round(sec)} 秒`});
+  const w = $('#quizWarn'); if (w) { w.hidden = false; w.textContent = `⚠ 测试期间请不要切屏。本关测试已切屏 ${s.qn} 次、共离开 ${Math.round(s.qs)} 秒，已同步给培训老师。`; }
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) startQuizAway(); else if (document.hasFocus()) endQuizAway(true); });
+window.addEventListener('blur', startQuizAway);
+window.addEventListener('focus', () => endQuizAway(true));
+setInterval(() => { if (quizActive()) { if (quizAwayNow()) startQuizAway(); else endQuizAway(true); } }, 1000);
 /* 占用时长：停留在某关卡（听课或做小测）的全部时间，含暂停、切走 */
 let tickAt = Date.now();
 setInterval(() => {
@@ -501,7 +539,7 @@ let quizState = null;
 function showQuiz(which){ st.view = 'quiz'; st.quiz = which; save(); quizState = {sel:{}, result:null};
   report({event:'进入测试', stage: which === 'final' ? '本章综合测试' : stageLabel(which)});
   renderQuiz(); window.scrollTo(0,0); }
-function stageDetail(k){ const s = stat(k); return `本关播放 ${mins(s.play)} 分｜占用 ${mins(s.occ)} 分｜时间差 ${mins(Math.max(0,s.occ-s.play))} 分｜暂停 ${s.pn} 次 ${mins(s.ps)} 分｜卡顿 ${s.kn} 次 ${mins(s.ks)} 分`; }
+function stageDetail(k){ const s = stat(k); return `本关播放 ${mins(s.play)} 分｜占用 ${mins(s.occ)} 分｜时间差 ${mins(Math.max(0,s.occ-s.play))} 分｜暂停 ${s.pn} 次 ${mins(s.ps)} 分｜卡顿 ${s.kn} 次 ${mins(s.ks)} 分｜测试中切屏 ${s.qn||0} 次 ${Math.round(s.qs||0)} 秒`; }
 function renderQuiz(){
   const which = st.quiz; const isFinal = which === 'final';
   if (!quizState) quizState = {sel:{}, result:null};
@@ -525,7 +563,8 @@ function renderQuiz(){
   ${cert}${top}
   <section class="card quiz"><div><span class="eyebrow">${isFinal?'结业测试':'阶段检测'}</span>
     <h2 style="font-size:20px;margin-top:4px">${esc(title)}</h2>
-    <p class="rule" style="margin:6px 0 0">共 ${qs.length} 题，答对 ${need} 题及以上通过（合格线 ${Math.round(PASS*100)}%）。多选题需全部选对才得分。${passedBefore&&!r?'你已通过，可再次练习。':''}</p></div>
+    <p class="rule" style="margin:6px 0 0">共 ${qs.length} 题，答对 ${need} 题及以上通过（合格线 ${Math.round(PASS*100)}%）。多选题需全部选对才得分。${passedBefore&&!r?'你已通过，可再次练习。':''}${r?'':'测试期间请不要切屏，切屏会被记录。'}</p>
+    <p class="fb no" id="quizWarn" hidden style="margin:8px 0 0"></p></div>
     ${qs.map((q,qi)=>{ const multi = q.answer.length>1; const sel = quizState.sel[q.id]||'';
       const res = r && r.items[q.id];
       return `<div class="qitem"><div class="qt"><span class="qn">${qi+1}.</span>${esc(q.q)}${multi&&!/多选/.test(q.q)?'（多选）':''}
@@ -537,6 +576,7 @@ function renderQuiz(){
     ${r?'':`<div class="row"><span class="rule" id="qmsg" style="margin-right:auto"></span><button class="btn" id="submit">提交答卷</button></div>`}
   </section>`;
   bindCommon();
+  { const s = stat(curKey()); const w = $('#quizWarn'); if (w && !r && s.qn) { w.hidden = false; w.textContent = `⚠ 测试期间请不要切屏。本关测试已切屏 ${s.qn} 次、共离开 ${Math.round(s.qs||0)} 秒，已同步给培训老师。`; } }
   document.querySelectorAll('.opt[data-q]').forEach(b => b.onclick = () => {
     const q = qs.find(x => x.id === b.dataset.q); const k = b.dataset.k; let sel = quizState.sel[q.id]||'';
     if (q.answer.length>1) sel = sel.includes(k) ? sel.replace(k,'') : [...sel+k].sort().join(''); else sel = k;
