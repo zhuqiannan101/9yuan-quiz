@@ -511,7 +511,7 @@ function onPageEnd(){
   flushPage(first ? '听完页面' : '重听页面');
   st.heard[p.p] = true; save();
   const nb = $('#next'); if (nb) nb.disabled = false;
-  if (pendingAfter) { const f = pendingAfter; pendingAfter = null; return f(); }
+  if (pendingAfter) { const f = pendingAfter; pendingAfter = null; if (f.page === p.p) return f(); }
   if (p.interact && (first || !st.answered?.[p.p])) return askInteract(p);
   setTimeout(() => { if (!playing && st.view==='learn' && curPage()===p && !document.querySelector('.modal')) nextPage(); }, 1200);
 }
@@ -553,7 +553,7 @@ function askInteract(p){
     if (it.wrong.startsWith('重讲')) {
       fb.innerHTML = `<div class="fb no">答错了。再听一遍本页讲解，听完重新作答。</div>`;
       row.innerHTML = `<button class="btn" id="go">重听本页</button>`;
-      row.querySelector('#go').onclick = () => { close(); au.currentTime = 0; pendingAfter = () => askInteract(p); play(); };
+      row.querySelector('#go').onclick = () => { close(); au.currentTime = 0; pendingAfter = Object.assign(() => askInteract(p), {page: p.p}); play(); };
     } else {
       ans.forEach(x => { const o = m.querySelector(`.opt[data-i="${x}"]`); o.classList.remove('wrong'); o.classList.add('right'); });
       st.answered[p.p] = true; save();
