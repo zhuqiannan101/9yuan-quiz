@@ -139,7 +139,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const normTag = t => String(t||'').replace(/1部/g,'一部').replace(/2部/g,'二部').replace(/苍穹顶/g,'苍穹鼎').replace(/\s/g,'');
 const tagsOf = t => String(t||'').split(/[\n、,，\/;；|]+/).map(normTag).filter(Boolean);
 function tagOk(tag, chosen){ const tags = tagsOf(tag); if (!tags.length || tags.includes('通用')) return true; return tags.some(x => (chosen||[]).map(normTag).includes(x)); }
-function pageVisible(p){ return tagOk(p.dept, st && st.depts) && tagOk(p.sku, st && st.skus); }
+function pageVisible(p){ return (!CFG.depts || tagOk(p.dept, st && st.depts)) && (!CFG.skus || tagOk(p.sku, st && st.skus)); }
 let STAGES = [];
 function buildStages(){
   STAGES = [];
