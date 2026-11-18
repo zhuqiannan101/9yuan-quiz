@@ -325,7 +325,7 @@ au.addEventListener('timeupdate', () => {
 /* 群播报：暂停/切屏/离开满 2 分钟、结业 */
 const BOT = 'https://open.feishu.cn/open-apis/bot/v2/hook/82649ac6-80a5-409e-9121-95139667f76c';
 const CN = CFG.short || CFG.title;
-function bot(text){ if (!st.name) return; try { fetch(BOT, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify({msg_type:'text', content:{text}})}); } catch(e) {} }
+function bot(text, force){ if (!st.name) return; if (!force && st.final && st.final.pass) return; try { fetch(BOT, {method:'POST', mode:'no-cors', keepalive:true, headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify({msg_type:'text', content:{text}})}); } catch(e) {} }
 const who = () => st.name + '（' + (st.team || '未填职场') + '）';
 let awayT = null, pauseT = null;
 function watchAway(kind){ if (!st.name || awayT || st.view === 'home') return; awayT = setTimeout(() => bot(who() + '在' + CN + '课已' + kind + '2分钟'), 120000); }
@@ -658,7 +658,7 @@ function renderQuiz(){
       report({event:'综合测试', stage:'本章综合测试', score, total:qs.length, pass:pass?'是':'否', relearn:'否', detail:`第${st.finalTries}次作答｜错题：${wrongIds}｜${stageDetail('f')}`});
       if (pass && st.final.tries === st.finalTries) {
         const totalMin = mins(Object.values(st.stageSec||{}).reduce((a,b)=>a+b,0));
-        report({event:'结业', stage:'本章综合测试', minutes:0, score, total:qs.length, pass:'是', detail:`全课累计学习 ${totalMin} 分钟`}); bot(st.name + '完成' + CN + '课全部学习，综合测试' + score + '/' + qs.length);
+        report({event:'结业', stage:'本章综合测试', minutes:0, score, total:qs.length, pass:'是', detail:`全课累计学习 ${totalMin} 分钟`}); bot(st.name + '完成' + CN + '课全部学习，综合测试' + score + '/' + qs.length, true);
       }
     } else {
       report({event:'阶段小测', stage:stageLabel(which), score, total:qs.length, pass:pass?'是':'否', relearn:(st.relearnCnt[which]||0)>0?'是':'否',
