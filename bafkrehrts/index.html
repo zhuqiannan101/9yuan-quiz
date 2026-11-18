@@ -248,6 +248,7 @@ function leaveCourse(){
   endQuizAway(false);
   save();
   const where = st.view === 'quiz' ? '测试中' : st.view === 'learn' ? '听课中' : '课程首页';
+  bot(who() + '在' + CN + '课已离开');
   report({event:'离开课程', stage: st.view === 'home' ? '' : stageLabel(st.cur.s), page: st.view === 'learn' ? ((curPageSafe()||{}).p||'') : '', detail:`在${where}关闭或离开网页`}, '已离开');
 }
 // 不论停在哪个界面（含课程首页），关网页都上报「已离开」；pagehide 不触发的浏览器用 beforeunload 兜底
