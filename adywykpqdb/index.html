@@ -166,6 +166,8 @@ function applyRestore(){ if(!RESTORE) return false; const o=RESTORE; RESTORE=nul
   for(const i of o.passed){ if(!STAGES[i]) continue; st.passed[i]=true; STAGES[i].pages.forEach(p=>st.heard[p.p]=true); }
   st.unlocked=Math.max(st.unlocked, Math.max(-1,...o.passed)+1); Object.assign(st.best,o.best||{}); save(); return true; }
 if (RESTORE && st.name) { applyRestore(); }
+// 旧版本里小测没加载、0/0 直接过关的阶段：重新打开，补做小测（已听过的页面不用重听）
+(function fixZeroPass(){ let first=-1; STAGES.forEach((s,i)=>{ if(st.passed[i] && s.quiz.length && st.best[i]==null){ delete st.passed[i]; if(first<0) first=i; } }); if(FINAL.length && st.final && st.final.pass && !st.final.score){ st.final=null; save(); } if(first>=0){ st.unlocked=Math.min(st.unlocked, first); if(st.final && !st.final.pass) st.final=null; save(); } })();
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
 if (!st.sid) st.sid = 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 if (!st.stageSec) st.stageSec = {};
