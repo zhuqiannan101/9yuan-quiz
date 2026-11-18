@@ -149,11 +149,11 @@ function buildStages(){
     if (!s) { s = {name:p.stage, num:+(/阶段\s*(\d+)/.exec(p.stage)||[0,STAGES.length+1])[1], pages:[]}; STAGES.push(s); }
     s.pages.push(p);
   }
-  for (const s of STAGES) s.quiz = DATA.qs.filter(q => q.type === '阶段练习题' && +(/阶段\s*(\d+)/.exec(q.chapter)||[])[1] === s.num);
+  for (const s of STAGES) s.quiz = DATA.qs.filter(q => /阶段练习/.test(q.type) && +(/阶段\s*(\d+)/.exec(q.chapter)||[])[1] === s.num);
 }
 let st = null; buildStages();
 const TITLES = CFG.titles || {};
-const FINAL = DATA.qs.filter(q => q.type === '本章综合测试题');
+const FINAL = DATA.qs.filter(q => /综合测试/.test(q.type));
 
 /* ---------- 学习记录（仅存本机浏览器） ---------- */
 function fresh(){ return {name:'', team:'', sid:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), unlocked:0, heard:{}, passed:{}, tries:{}, best:{}, final:null, finalTries:0, view:'home', cur:{s:0,p:0}, stageSec:{}}; }
