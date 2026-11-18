@@ -159,6 +159,13 @@ const FINAL = DATA.qs.filter(q => q.type === '本章综合测试题');
 function fresh(){ return {name:'', team:'', sid:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,7), unlocked:0, heard:{}, passed:{}, tries:{}, best:{}, final:null, finalTries:0, view:'home', cur:{s:0,p:0}, stageSec:{}}; }
 try { st = JSON.parse(localStorage.getItem(KEY)) || fresh(); } catch(e) { st = fresh(); }
 buildStages();
+// 恢复进度链接：#r=base64(JSON {k,sid,passed:[..],best:{..}})，只对本课 key 生效
+let RESTORE=null; try { const m=/[#&]r=([^&]+)/.exec(location.hash); if(m){ const o=JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g,'+').replace(/_/g,'/'))))); if(o.k===CFG.key) RESTORE=o; history.replaceState(null,'',location.pathname+location.search); } } catch(e) {}
+function applyRestore(){ if(!RESTORE) return false; const o=RESTORE; RESTORE=null;
+  st.sid=o.sid||st.sid; st.rowCreated=true;
+  for(const i of o.passed){ if(!STAGES[i]) continue; st.passed[i]=true; STAGES[i].pages.forEach(p=>st.heard[p.p]=true); }
+  st.unlocked=Math.max(st.unlocked, Math.max(-1,...o.passed)+1); Object.assign(st.best,o.best||{}); save(); return true; }
+if (RESTORE && st.name) { applyRestore(); }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(st)); } catch(e) {} }
 if (!st.sid) st.sid = 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 if (!st.stageSec) st.stageSec = {};
@@ -433,8 +440,8 @@ function renderHome(){
     } else { t = $('#tm').value.trim(); if (!v || !t) return; }
     st.name = v; st.team = t; buildStages();
     if (!STAGES.length) { const m = $('#formMsg'); m.hidden = false; m.textContent = '你选择的部门 / SKU 暂时没有对应课件，请确认后重新选择。'; st.name = ''; st.depts = st.skus = null; buildStages(); return; }
-    save();
-    report({event:'进入课程', detail:'首次进入' + extra}); startStage(0); };
+    const rs = applyRestore(); save();
+    report({event:'进入课程', detail:(rs?'恢复进度':'首次进入') + extra}); startStage(rs ? Math.min(st.unlocked, STAGES.length-1) : 0); };
   const r = $('#resume'); if (r) r.onclick = () => { report({event:'进入课程', detail:'继续学习'}); startStage(Math.min(st.unlocked, STAGES.length-1), true); };
   const c = $('#cert'); if (c) c.onclick = () => showQuiz('final');
   const x = $('#reset'); if (x) x.onclick = () => {
