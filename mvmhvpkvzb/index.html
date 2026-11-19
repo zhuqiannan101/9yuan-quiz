@@ -424,7 +424,7 @@ function renderHome(){
       : `<form id="nameForm"><label for="nm">学员姓名</label>
           <input id="nm" required maxlength="20" placeholder="请输入真实姓名" autocomplete="name">
           ${CFG.depts ? `<span>部门（可多选）</span><div class="chips">${CFG.depts.map(d=>`<label class="chip"><input type="checkbox" name="dept" value="${esc(d)}"> ${esc(d)}</label>`).join('')}</div>
-          <span>SKU（可多选）</span><div class="chips">${(CFG.skus||[]).map(d=>`<label class="chip"><input type="checkbox" name="sku" value="${esc(d)}"> ${esc(d)}</label>`).join('')}</div>`
+          ${CFG.skus ? `<span>SKU（可多选）</span><div class="chips">${CFG.skus.map(d=>`<label class="chip"><input type="checkbox" name="sku" value="${esc(d)}"> ${esc(d)}</label>`).join('')}</div>` : ''}`
           : `<label for="tm">职场 / 团队</label>
           <input id="tm" required maxlength="20" placeholder="如：武汉、汇诚" list="teams" autocomplete="off">
           <datalist id="teams"><option value="武汉"><option value="汇诚"><option value="国润"><option value="长春"></datalist>`}
@@ -451,8 +451,8 @@ function renderHome(){
     let t = '', extra = '';
     if (CFG.depts) {
       const ds = pick('dept'), ks = pick('sku'), m = $('#formMsg');
-      if (!v || !ds.length || !ks.length) { m.hidden = false; m.textContent = '请填写姓名，并至少选择一个部门和一个 SKU。'; return; }
-      st.depts = ds; st.skus = ks; t = ds.join('、'); extra = `｜部门：${ds.join('、')}｜SKU：${ks.join('、')}`;
+      if (!v || !ds.length || (CFG.skus && !ks.length)) { m.hidden = false; m.textContent = CFG.skus ? '请填写姓名，并至少选择一个部门和一个 SKU。' : '请填写姓名，并至少选择一个部门。'; return; }
+      st.depts = ds; st.skus = ks; t = ds.join('、'); extra = `｜部门：${ds.join('、')}` + (CFG.skus ? `｜SKU：${ks.join('、')}` : '');
     } else { t = $('#tm').value.trim(); if (!v || !t) return; }
     st.name = v; st.team = t; buildStages();
     if (!STAGES.length) { const m = $('#formMsg'); m.hidden = false; m.textContent = '你选择的部门 / SKU 暂时没有对应课件，请确认后重新选择。'; st.name = ''; st.depts = st.skus = null; buildStages(); return; }
