@@ -182,6 +182,7 @@ const mins = sec => Math.round((sec||0)/6)/10;
 function stat(k){ st.stat = st.stat || {}; return st.stat[k] = st.stat[k] || {play:0, occ:0, pn:0, ps:0, kn:0, ks:0}; }
 function curKey(){ return st.view === 'quiz' ? (st.quiz === 'final' ? 'f' : st.quiz) : st.cur.s; }
 function stageStatusText(k){
+  if (k !== 'f' && !STAGES[k]) return '';
   const done = k === 'f' ? !!(st.final && st.final.pass) : !!st.passed[k];
   if (done) return '已完成';
   if ((st.view === 'learn' || st.view === 'quiz') && String(curKey()) === String(k)) return '进行中';
