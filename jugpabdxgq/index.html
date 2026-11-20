@@ -506,7 +506,7 @@ function renderLearn(autoplay){
   <details class="full"><summary>展开本页讲解全文</summary><p>${esc(p.script)}</p></details>`;
   bindCommon();
   au.src = VU('audio/'+p.p+'.mp3');
-  { const im=document.querySelector('.slide img'); if(im && !im.complete){ im.style.opacity=0; im.onload=()=>{im.style.transition='opacity .2s';im.style.opacity=1;}; } }
+  { const im=document.querySelector('.slide img'); if(im && !im.complete){ im.style.opacity=0; im.onload=()=>{im.style.transition='opacity .2s';im.style.opacity=1;}; im.onerror=()=>{ if(!im.dataset.r){ im.dataset.r=1; im.src=im.src+'&r='+Date.now(); } else im.style.opacity=1; }; } }
   [1,2].forEach(k=>preload(s.pages[st.cur.p+k])); if(st.cur.p+1>=s.pages.length) preload((STAGES[st.cur.s+1]||{pages:[]}).pages[0]);
   au.currentTime = 0; lastT = 0;
   report({event:'进入页面', stage:stageLabel(st.cur.s), page:p.p, detail:p.topic});
