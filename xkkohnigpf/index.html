@@ -340,6 +340,7 @@ window.addEventListener('blur', () => { if (!document.hidden) watchAway('切屏'
 window.addEventListener('focus', backAway);
 au.addEventListener('pause', () => { clearTimeout(pauseT); if (au.ended || st.view !== 'learn') return; pauseT = setTimeout(() => { if (au.paused && !document.hidden && document.hasFocus() && st.view === 'learn') bot(who() + '在' + CN + '课已暂停2分钟'); }, 120000); });
 au.addEventListener('play', () => clearTimeout(pauseT));
+au.addEventListener('error', () => { if (st.view !== 'learn' || !au.getAttribute('src')) return; const p = curPageSafe(); if (!p) return; if (!au.dataset.retried) { au.dataset.retried = 1; const t = au.currentTime; au.src = au.src + (au.src.includes('?') ? '&' : '?') + 'r=' + Date.now(); au.currentTime = t; play(); return; } st.heard[p.p] = true; save(); const nb = $('#next'); if (nb) nb.disabled = false; const sub = $('#sub'); if (sub) sub.textContent = '本页声音加载失败，可以看字幕后直接点「下一页」继续。'; });
 au.addEventListener('ended', () => { playing = false; updPlayBtn(); onPageEnd(); });
 au.addEventListener('pause', () => {
   playing = false; updPlayBtn(); endStall();
@@ -505,7 +506,7 @@ function renderLearn(autoplay){
   <div class="dots">${s.pages.map((pg,i)=>`<button class="dot ${st.heard[pg.p]?'heard':''} ${i===st.cur.p?'now':''} ${pg.interact?'q':''}" data-pg="${i}" ${(st.heard[pg.p]||i===st.cur.p)?'':'disabled'} title="${esc(pg.topic)}">${pg.p}</button>`).join('')}</div>
   <details class="full"><summary>展开本页讲解全文</summary><p>${esc(p.script)}</p></details>`;
   bindCommon();
-  au.src = VU('audio/'+p.p+'.mp3');
+  delete au.dataset.retried; au.src = VU('audio/'+p.p+'.mp3');
   { const im=document.querySelector('.slide img'); if(im && !im.complete){ im.style.opacity=0; im.onload=()=>{im.style.transition='opacity .2s';im.style.opacity=1;}; im.onerror=()=>{ if(!im.dataset.r){ im.dataset.r=1; im.src=im.src+'&r='+Date.now(); } else im.style.opacity=1; }; } }
   [1].forEach(k=>preload(s.pages[st.cur.p+k])); if(st.cur.p+1>=s.pages.length) preload((STAGES[st.cur.s+1]||{pages:[]}).pages[0]);
   au.currentTime = 0; lastT = 0;
