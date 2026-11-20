@@ -151,10 +151,10 @@ body.only .pg:not(.haschg),body.only .qq:not(.haschg){display:none}h2{margin:28p
     <ol><li class="ans">A. “那我看时间还来得及，等孩子到了我单独带他补一下前面的内容~”</li><li class="">B. “那今天就先不赶了，我给孩子安排明天XX点补课，您看方便吗？”</li><li class="">C. “今天的课很重要，还是尽量让孩子来上吧。”</li><li class="">D. “那能不能让孩子先上线听一会儿？”</li></ol></div></main>
 <audio id="au"></audio>
 <script>
-const AV={"P01":"03023c9c","P02":"7bf4ecca","P03":"7a98aef2","P04":"a5c1c708","P05":"55dadb9a","P06":"b24db196","P07":"58736800","P08":"64590f77","P09":"332ec26f","P10":"580b513d","P11":"f10623ba","P12":"c599cd42","P13":"b2b1fc5f","P14":"695b39c6","P15":"14f65330","P16":"9d37e02d","P17":"ff37d886","P18":"afbae042","P19":"1d6cb280","P20":"d7878144","P21":"fd5ae57a","P22":"b58e196c"};
+const AV={"P01":"audio/P01.mp3?v=03023c9c","P02":"audio/P02.mp3?v=7bf4ecca","P03":"audio/P03.mp3?v=7a98aef2","P04":"audio/P04.mp3?v=a5c1c708","P05":"audio/P05.mp3?v=55dadb9a","P06":"audio/P06.mp3?v=b24db196","P07":"audio/P07.mp3?v=58736800","P08":"audio/P08.mp3?v=64590f77","P09":"audio/P09.mp3?v=332ec26f","P10":"audio/P10.mp3?v=580b513d","P11":"audio/P11.mp3?v=f10623ba","P12":"audio/P12.mp3?v=c599cd42","P13":"audio/P13.mp3?v=b2b1fc5f","P14":"audio/P14.mp3?v=695b39c6","P15":"audio/P15.mp3?v=14f65330","P16":"audio/P16.mp3?v=9d37e02d","P17":"audio/P17.mp3?v=ff37d886","P18":"audio/P18.mp3?v=afbae042","P19":"audio/P19.mp3?v=1d6cb280","P20":"audio/P20.mp3?v=d7878144","P21":"audio/P21.mp3?v=fd5ae57a","P22":"audio/P22.mp3?v=b58e196c"};
 const au=document.getElementById('au');let stopAt=null,cur=null;
 const rate=()=>+document.getElementById('rate').value;
-function play(p,a,b,el){if(cur)cur.classList.remove('on');cur=el;if(el)el.classList.add('on');if(!au.src.includes('audio/'+p+'.mp3'))au.src='audio/'+p+'.mp3?v='+(AV[p]||'');
+function play(p,a,b,el){if(cur)cur.classList.remove('on');cur=el;if(el)el.classList.add('on');if(au.dataset.p!==p){au.dataset.p=p;au.src=AV[p];}
  const go=()=>{au.currentTime=a;au.playbackRate=rate();au.play();stopAt=b;};if(au.readyState>0)go();else au.onloadedmetadata=()=>{au.onloadedmetadata=null;go();};}
 au.ontimeupdate=()=>{if(stopAt!=null&&au.currentTime>=stopAt){au.pause();stopAt=null;if(cur)cur.classList.remove('on');}};
 document.querySelectorAll('.s').forEach(s=>s.onclick=()=>play(s.closest('.pg').id,+s.dataset.a,+s.dataset.b,s));
