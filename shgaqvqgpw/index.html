@@ -340,8 +340,8 @@ window.addEventListener('blur', () => { if (!document.hidden) watchAway('切屏'
 window.addEventListener('focus', backAway);
 au.addEventListener('pause', () => { clearTimeout(pauseT); if (au.ended || st.view !== 'learn') return; pauseT = setTimeout(() => { if (au.paused && !document.hidden && document.hasFocus() && st.view === 'learn') bot(who() + '在' + CN + '课已暂停2分钟'); }, 120000); });
 au.addEventListener('play', () => clearTimeout(pauseT));
-au.addEventListener('error', () => { if (st.view !== 'learn' || !au.getAttribute('src')) return; const p = curPageSafe(); if (!p) return; if (!au.dataset.retried) { au.dataset.retried = 1; const t = au.currentTime; au.src = au.src + (au.src.includes('?') ? '&' : '?') + 'r=' + Date.now(); au.currentTime = t; play(); return; } st.heard[p.p] = true; save(); const nb = $('#next'); if (nb) nb.disabled = false; const sub = $('#sub'); if (sub) sub.textContent = '本页声音加载失败，可以看字幕后直接点「下一页」继续。'; });
-au.addEventListener('ended', () => { playing = false; updPlayBtn(); onPageEnd(); });
+au.addEventListener('error', () => { if (window.REVIEW) return; if (st.view !== 'learn' || !au.getAttribute('src')) return; const p = curPageSafe(); if (!p) return; if (!au.dataset.retried) { au.dataset.retried = 1; const t = au.currentTime; au.src = au.src + (au.src.includes('?') ? '&' : '?') + 'r=' + Date.now(); au.currentTime = t; play(); return; } st.heard[p.p] = true; save(); const nb = $('#next'); if (nb) nb.disabled = false; const sub = $('#sub'); if (sub) sub.textContent = '本页声音加载失败，可以看字幕后直接点「下一页」继续。'; });
+au.addEventListener('ended', () => { if (window.REVIEW) return; playing = false; updPlayBtn(); onPageEnd(); });
 au.addEventListener('pause', () => {
   playing = false; updPlayBtn(); endStall();
   const atEnd = au.ended || (au.duration && au.currentTime >= au.duration - 0.3);
@@ -353,7 +353,18 @@ au.addEventListener('play', () => { playing = true; updPlayBtn(); const v=$('#ve
 au.addEventListener('waiting', () => { if (!au.paused && au.currentTime > 0.5 && stallAt == null) stallAt = Date.now(); });  // 每页开头的首次加载不算卡顿
 au.addEventListener('playing', endStall);
 function fmt(t){ t = Math.max(0, Math.floor(t)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
-function play(){ au.playbackRate = rate; au.play().catch(() => { const v=$('#veil'); if(v) v.hidden=false; }); }
+/* 防分屏：窗口不到屏幕 80% 宽就不让播；电脑上播放时自动全屏，退出全屏就暂停 */
+const IS_MOBILE = /Mobi|Android|iPhone|iPad|iPod|HarmonyOS/i.test(navigator.userAgent);
+function tooSmall(){ if (document.fullscreenElement) return false; const w = window.outerWidth || window.innerWidth; return w < (screen.availWidth || screen.width) * 0.8; }
+function needFS(){ return !IS_MOBILE && document.fullscreenEnabled; }
+function showVeil(msg){ const v = $('#veil'); if (v) { v.hidden = false; const b = $('#veilBtn'); if (b) b.textContent = msg; } }
+function play(){
+  if (st.view === 'learn' && tooSmall()) { showVeil('检测到分屏或窗口太小，请把窗口最大化后点我继续'); return; }
+  if (st.view === 'learn' && needFS() && !document.fullscreenElement) { try { document.documentElement.requestFullscreen().catch(() => {}); } catch(e) {} }
+  au.playbackRate = rate; au.play().catch(() => { const v=$('#veil'); if(v) v.hidden=false; });
+}
+window.addEventListener('resize', () => { if (st.view === 'learn' && playing && tooSmall()) { autoPause('分屏或窗口太小自动暂停'); showVeil('检测到分屏或窗口太小，请把窗口最大化后点我继续'); } });
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && needFS() && st.view === 'learn' && playing) { autoPause('退出全屏自动暂停'); showVeil('已退出全屏，点我继续（会自动回到全屏）'); } });
 function updPlayBtn(){ const b = $('#pp'); if (b) b.textContent = playing ? '暂停' : '播放'; }
 
 /* 切走自动暂停——防挂机。两种情况都算：
@@ -405,6 +416,25 @@ function bindCommon(){
   const h = document.querySelector('[data-home]'); if (h) h.onclick = () => { navStop(); st.view='home'; save(); report({event:'回到首页'}); render(); };
 }
 
+
+/* ---------- 审核模式：姓名填「审核」进入，不上报、不计进度 ---------- */
+function renderReview(){ window.REVIEW = 1;
+  const L='ABCDEF', nz=x=>(x||'').replace(/\s/g,''), stem=q=>(q||'').replace(/^【[^】]*】/,'').replace(/【[^】]*】$/,'').replace(/[（(]\s*(多选|单选|判断)[^）)]*[）)]\s*$/,'').replace(/[?？]$/,'');
+  let bad=0;
+  const pages=DATA.pages.map(p=>{const t=DATA.timing[p.p]||{sents:[p.script],durs:[0]};let a=0;
+    const ss=t.sents.map((x,i)=>{const b=a+(t.durs[i]||0);const h='<span class="rs" data-p="'+p.p+'" data-a="'+a+'" data-b="'+b+'">'+esc(x.trim())+' <b>▶</b></span>';a=b;return h;}).join('');
+    const it=p.interact;let ih='';if(it){const ok=it.vote||nz(p.script).includes(nz(stem(it.q)));if(!ok)bad++;
+      ih='<div class="rq"><div class="rh">互动题'+(it.vote?'（调查）':'')+(ok?'':' <b style="color:#dc2626">⚠ 讲稿没念到这道题</b>')+'</div><b>'+esc(it.q)+'</b>'+it.options.map((o,i)=>'<div class="'+((it.answers||[]).includes(i)?'ra':'')+'">'+L[i]+'. '+esc(o)+'</div>').join('')+'</div>';}
+    const tags=[p.sku&&p.sku.trim()?'SKU：'+p.sku.replace(/\n/g,' / '):'',p.dept&&!/^通用$/.test(p.dept.trim())?'部门：'+p.dept.replace(/\n/g,' / '):''].filter(Boolean).join(' · ');
+    return '<section class="rp" id="r'+p.p+'"><div>'+(p.video?'<video src="'+VU(p.video)+'" controls preload="none" style="width:100%"></video>':'<img loading="lazy" src="'+SL(p.p)+'" style="width:100%;border-radius:8px;border:1px solid #eee">')+'</div><div><div class="rh"><b style="color:#c2410c">'+p.p+'</b> · '+esc(p.stage)+(tags?' · '+esc(tags):'')+' · '+Math.round(a)+' 秒</div><div>'+ss+'</div>'+ih+'</div></section>';}).join('');
+  const qs=DATA.qs.map(q=>'<div class="rq"><div class="rh">'+esc(q.id)+' · '+esc(q.type)+' · '+esc(q.chapter)+' · 答案 <b>'+esc(q.answer)+'</b></div><b>'+esc(q.q)+'</b>'+q.options.map(o=>'<div class="'+(q.answer.includes(o.k)?'ra':'')+'">'+o.k+'. '+esc(o.t)+'</div>').join('')+'</div>').join('');
+  document.title='审核 · '+CFG.title;
+  $('#app').innerHTML='<style>.rp{display:grid;grid-template-columns:minmax(0,46%) 1fr;gap:14px;background:#fff;border-radius:12px;padding:12px;margin:10px 0}@media(max-width:800px){.rp{grid-template-columns:1fr}}.rs{cursor:pointer;border-radius:4px}.rs b{color:#c2410c;font-size:11px}.rs:hover,.rs.on{background:#ffe0b2}.rq{border:1px solid #eee;border-radius:8px;padding:8px;margin-top:8px;background:#fff}.rh{font-size:13px;color:#777}.ra{color:#15803d;font-weight:700}.ra::after{content:"  ✓ 正确"}</style>'+
+    '<h2 style="margin:8px 0">审核 · '+esc(CFG.title)+'</h2><p class="rule">'+DATA.pages.length+' 页 · '+DATA.qs.length+' 题 · '+(bad?'<b style="color:#dc2626">'+bad+' 处念题不一致</b>':'念题全部一致')+' · 点任意一句讲稿可单独播放（1.5 倍速）</p>'+pages+'<h2>题库（阶段小测 + 综合测试）</h2>'+qs;
+  let stop=null,cur=null;au.ontimeupdate=()=>{if(stop!=null&&au.currentTime>=stop){au.pause();stop=null;if(cur)cur.classList.remove('on');}};
+  document.querySelectorAll('.rs').forEach(el=>el.onclick=()=>{if(cur)cur.classList.remove('on');cur=el;el.classList.add('on');const p=el.dataset.p;const go=()=>{au.currentTime=+el.dataset.a;au.playbackRate=1.5;au.play();stop=+el.dataset.b;};if(au.dataset.rp!==p){au.dataset.rp=p;au.src=VU('audio/'+p+'.mp3');au.onloadedmetadata=()=>{au.onloadedmetadata=null;go();};}else go();});
+  window.scrollTo(0,0);
+}
 function render(){
   if (st.view === 'learn') return renderLearn();
   if (st.view === 'quiz') return renderQuiz();
@@ -451,7 +481,7 @@ function renderHome(){
   bindCommon();
   const f = $('#nameForm');
   if (f) f.onsubmit = e => { e.preventDefault();
-    const v = $('#nm').value.trim(); const pick = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value);
+    const v = $('#nm').value.trim(); const pick = n => [...document.querySelectorAll(`input[name="${n}"]:checked`)].map(x => x.value); if (v === '审核') { renderReview(); return; }
     let t = '', extra = '';
     if (CFG.depts) {
       const ds = pick('dept'), ks = pick('sku'), m = $('#formMsg');
