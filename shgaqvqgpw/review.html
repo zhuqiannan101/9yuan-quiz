@@ -146,7 +146,7 @@ body.only .pg:not(.haschg),body.only .qq:not(.haschg){display:none}h2{margin:28p
 <div class="qq chg haschg"><div class="h">T-F06 · 本章综合测试题·单选 · 规划电访·全章 · 答案 <b>A</b></div><div class="q">家长问「为什么要花600元」，按PPT回应逻辑是？</div>
     <ol><li class="ans">A. 官方考试，核桃代收，机构不赚一分钱，赛考辅导全程免费</li><li class="">B. 考点高度重合、效率最高，国家级比赛一年只有一次机会</li><li class="">C. 编程没有统一高考，证书=分数</li><li class="">D. 报名窗口固定，现在报锁定的是「考位」</li></ol></div>
 <div class="qq chg haschg"><div class="h">T-F07 · 本章综合测试题·单选 · 规划电访·全章 · 答案 <b>A</b></div><div class="q">家长说「现在参加太早了」，按PPT回应逻辑是？</div>
-    <ol><li class="ans">A. 只是提前了解，真正考试在Level 4，时间绝对充足</li><li class="">B. 通过率90%+，主要是积累经验，为比赛做铺垫</li><li class="">C. 报名窗口固定，辅导是长周期</li><li class="">D. 这个年龄段的正常心理，老师可直接跟孩子沟通鼓励</li></ol></div>
+    <ol><li class="ans">A. 只是提前了解，真正考试在Level 10，时间绝对充足</li><li class="">B. 通过率90%+，主要是积累经验，为比赛做铺垫</li><li class="">C. 报名窗口固定，辅导是长周期</li><li class="">D. 这个年龄段的正常心理，老师可直接跟孩子沟通鼓励</li></ol></div>
 <div class="qq "><div class="h">T-F08 · 本章综合测试题·单选 · 规划电访·全章 · 答案 <b>A</b></div><div class="q">YCL的主办单位是？</div>
     <ol><li class="ans">A. 工业和信息化部教育与考试中心、中国电子教育学会联合主办</li><li class="">B. 共青团中央主管</li><li class="">C. 清华大学计算机系</li><li class="">D. 计算机电子学会</li></ol></div>
 <div class="qq chg haschg"><div class="h">T-F09 · 本章综合测试题·多选 · 规划电访·全章 · 答案 <b>A</b></div><div class="q">图灵杯的主办与命题评审单位是？</div>
@@ -155,10 +155,10 @@ body.only .pg:not(.haschg),body.only .qq:not(.haschg){display:none}h2{margin:28p
     <ol><li class="ans">A. 类比大学四六级、清华牵头命题的奥数</li><li class="ans">B. 含金量不是「有无」，是「多与少」</li><li class="">C. 阶段性检测价值+核桃NOI金牌数据佐证</li><li class="">D. 考点高度重合、效率最高</li></ol></div></main>
 <audio id="au"></audio>
 <script>
-const AV={"P01":"38056594","P02":"236537fc","P03":"de15ffdf","P04":"95f9eb51","P05":"4065cc17","P06":"bc6ef632","P07":"3f65b3bf","P08":"26181488","P09":"434e0648","P10":"19f5b154","P11":"9bbed1d6","P12":"8a5cccfb","P13":"2f62293a","P14":"7165b1b6","P15":"91e69597","P16":"92489269","P17":"0d4e6e8b","P18":"01eef1cb","P19":"938b1fa7"};
+const AV={"P01":"audio/P01.mp3?v=22f6a493","P02":"audio/P02.mp3?v=7ab4d7ec","P03":"audio/P03.mp3?v=3d227130","P04":"audio/P04.mp3?v=6e9c11e4","P05":"audio/P05.mp3?v=e5d300d7","P06":"audio/P06.mp3?v=5cbaa535","P07":"audio/P07.mp3?v=80b978f2","P08":"audio/P08.mp3?v=788278b6","P09":"audio/P09.mp3?v=e475288b","P10":"audio/P10.mp3?v=6914eea5","P11":"audio/P11.mp3?v=50a4ffe1","P12":"audio/P12.mp3?v=ac64fcab","P13":"audio/P13.mp3?v=90a58611","P14":"audio/P14.mp3?v=e2620a98","P15":"audio/P15.mp3?v=cb2201b1","P16":"audio/P16.mp3?v=991d2e0f","P17":"audio/P17.mp3?v=e92d64ad","P18":"audio/P18.mp3?v=ca1c2963","P19":"audio/P19.mp3?v=1bca6be2"};
 const au=document.getElementById('au');let stopAt=null,cur=null;
 const rate=()=>+document.getElementById('rate').value;
-function play(p,a,b,el){if(cur)cur.classList.remove('on');cur=el;if(el)el.classList.add('on');if(!au.src.includes('audio/'+p+'.mp3'))au.src='audio/'+p+'.mp3?v='+(AV[p]||'');
+function play(p,a,b,el){if(cur)cur.classList.remove('on');cur=el;if(el)el.classList.add('on');if(au.dataset.p!==p){au.dataset.p=p;au.src=AV[p];}
  const go=()=>{au.currentTime=a;au.playbackRate=rate();au.play();stopAt=b;};if(au.readyState>0)go();else au.onloadedmetadata=()=>{au.onloadedmetadata=null;go();};}
 au.ontimeupdate=()=>{if(stopAt!=null&&au.currentTime>=stopAt){au.pause();stopAt=null;if(cur)cur.classList.remove('on');}};
 document.querySelectorAll('.s').forEach(s=>s.onclick=()=>play(s.closest('.pg').id,+s.dataset.a,+s.dataset.b,s));
