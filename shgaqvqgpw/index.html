@@ -551,7 +551,14 @@ function renderLearn(autoplay){
   document.querySelectorAll('[data-pg]').forEach(b => b.onclick = () => goPage(+b.dataset.pg));
   document.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { rate = +b.dataset.r; au.playbackRate = rate;
     document.querySelectorAll('[data-r]').forEach(x=>x.classList.toggle('on', x===b)); });
-  if (autoplay) play();
+  if (autoplay) {
+    // 等这一页的 PPT 图片加载完再开始讲，避免「声音在讲、画面还没出来」；最多等 8 秒
+    const im = document.querySelector('.slide img');
+    if (im && !im.complete) {
+      let done = false; const go = () => { if (done) return; done = true; if (curPage() === p && st.view === 'learn') play(); };
+      im.addEventListener('load', go, { once: true }); im.addEventListener('error', go, { once: true }); setTimeout(go, 8000);
+    } else play();
+  }
 }
 function navStop(){ endPause(false); if (!au.paused) { navPause = true; au.pause(); } }
 function goPage(i){ navStop(); flushPage('学习页面(未听完)'); st.cur.p = i; save(); renderLearn(true); }
