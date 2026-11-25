@@ -195,7 +195,7 @@ function snapshot(online){
   const sc = i => st.best[i] != null ? `${st.best[i]}/${STAGES[i].quiz.length}` : '';
   const cur = st.view === 'quiz' ? (st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz) + '·小测') : (st.view === 'learn' ? stageLabel(st.cur.s) : '课程首页');
   const cp = st.view === 'learn' ? (curPageSafe()||{}).p || '' : '';
-  return {online: online || '学习中', cur_stage:cur, cur_page:cp,
+  return {online: online || '学习中', cur_stage:(CFG.short||CFG.title)+'｜'+cur, cur_page:cp,
     st1:stageStatusText(0), st2:stageStatusText(1), st3:stageStatusText(2), st4:stageStatusText(3), stf:stageStatusText('f'),
     sc1:sc(0), sc2:sc(1), sc3:sc(2), scf: st.final ? `${st.final.score}/${FINAL.length}` : '',
     play_min:mins(play), occ_min:mins(occ), gap_min:mins(Math.max(0, occ-play)),
@@ -223,7 +223,8 @@ function pump(){
 }
 function report(ev, online){
   if (!st.name) return;
-  const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid}, ev, snapshot(online));
+  const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid, course:CFG.short||CFG.title, date:nowStr().slice(0,10)}, ev, snapshot(online));
+  { const CNm = CFG.short || CFG.title; if (!String(rec.stage||'').startsWith(CNm + '｜')) rec.stage = CNm + (rec.stage ? '｜' + rec.stage : ''); }
   const body = JSON.stringify(rec);
   if (!st.rowCreated) { post(HOOK_NEW, body); st.rowCreated = true; save(); rowReadyAt = Date.now() + 5000; }
   outbox.push(body);
