@@ -193,7 +193,7 @@ function stageStatusText(k){
   return s && s.occ > 0 ? '进行中' : '未开始';
 }
 function snapshot(online){
-  const keys = [0,1,2,3,'f'], sum = f => keys.reduce((a,k) => a + ((st.stat&&st.stat[k]&&st.stat[k][f])||0), 0);
+  const keys = Object.keys(st.stat||{}), sum = f => keys.reduce((a,k) => a + ((st.stat&&st.stat[k]&&st.stat[k][f])||0), 0);
   const play = sum('play'), occ = sum('occ');
   const sc = i => st.best[i] != null ? `${st.best[i]}/${STAGES[i].quiz.length}` : '';
   const cur = st.view === 'quiz' ? (st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz) + '·小测') : (st.view === 'learn' ? stageLabel(st.cur.s) : '课程首页');

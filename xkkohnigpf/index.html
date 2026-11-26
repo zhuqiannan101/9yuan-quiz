@@ -165,6 +165,9 @@ function applyRestore(){ if(!RESTORE) return false; const o=RESTORE; RESTORE=nul
   st.sid=o.sid||st.sid; st.rowCreated=true;
   for(const i of o.passed){ if(!STAGES[i]) continue; st.passed[i]=true; STAGES[i].pages.forEach(p=>st.heard[p.p]=true); }
   st.unlocked=Math.max(st.unlocked, Math.max(-1,...o.passed)+1); Object.assign(st.best,o.best||{}); save(); return true; }
+// 后台补进度：cfg.restore = {姓名: {passed,best,sid}}，每人只补一次（妙搭链接带不了 #r=）
+function pickRestore(n){ const o=CFG.restore&&CFG.restore[n]; if(!RESTORE&&o&&st.restoredFrom!==o.sid){ RESTORE=o; st.restoredFrom=o.sid; } }
+if (st.name) pickRestore(st.name);
 if (RESTORE && st.name) { applyRestore(); }
 // 旧版本里小测没加载、0/0 直接过关的阶段：重新打开，补做小测（已听过的页面不用重听）
 (function fixZeroPass(){ let first=-1; STAGES.forEach((s,i)=>{ if(st.passed[i] && s.quiz.length && st.best[i]==null){ delete st.passed[i]; if(first<0) first=i; } }); if(FINAL.length && st.final && st.final.pass && !st.final.score){ st.final=null; save(); } if(first>=0){ st.unlocked=Math.min(st.unlocked, first); if(st.final && !st.final.pass) st.final=null; save(); } })();
@@ -190,7 +193,7 @@ function stageStatusText(k){
   return s && s.occ > 0 ? '进行中' : '未开始';
 }
 function snapshot(online){
-  const keys = [0,1,2,3,'f'], sum = f => keys.reduce((a,k) => a + ((st.stat&&st.stat[k]&&st.stat[k][f])||0), 0);
+  const keys = Object.keys(st.stat||{}), sum = f => keys.reduce((a,k) => a + ((st.stat&&st.stat[k]&&st.stat[k][f])||0), 0);
   const play = sum('play'), occ = sum('occ');
   const sc = i => st.best[i] != null ? `${st.best[i]}/${STAGES[i].quiz.length}` : '';
   const cur = st.view === 'quiz' ? (st.quiz === 'final' ? '本章综合测试' : stageLabel(st.quiz) + '·小测') : (st.view === 'learn' ? stageLabel(st.cur.s) : '课程首页');
@@ -491,7 +494,7 @@ function renderHome(){
     } else { t = $('#tm').value.trim(); if (!v || !t) return; }
     st.name = v; st.team = t; buildStages();
     if (!STAGES.length) { const m = $('#formMsg'); m.hidden = false; m.textContent = '你选择的部门 / SKU 暂时没有对应课件，请确认后重新选择。'; st.name = ''; st.depts = st.skus = null; buildStages(); return; }
-    const rs = applyRestore(); save();
+    pickRestore(v); const rs = applyRestore(); save();
     report({event:'进入课程', detail:(rs?'恢复进度':'首次进入') + extra}); startStage(rs ? Math.min(st.unlocked, STAGES.length-1) : 0); };
   const r = $('#resume'); if (r) r.onclick = () => { report({event:'进入课程', detail:'继续学习'}); startStage(Math.min(st.unlocked, STAGES.length-1), true); };
   const c = $('#cert'); if (c) c.onclick = () => showQuiz('final');
