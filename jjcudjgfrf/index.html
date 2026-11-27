@@ -224,8 +224,11 @@ function pump(){
   post(HOOK, outbox.shift()); lastSent = Date.now();
   if (outbox.length) pumpTimer = setTimeout(pump, 1200);
 }
+// 明细表有 5 万行上限：这些动作量大、分析用不到（暂停时长等已汇总在状态快照里），不再单独记一行
+const NO_LOG = new Set(['听完页面','暂停','继续播放','回到测试','学习页面(未听完)']);
 function report(ev, online){
   if (!st.name) return;
+  if (NO_LOG.has(ev.event) && online !== '已离开') return;
   const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid, course:CFG.short||CFG.title, date:nowStr().slice(0,10)}, ev, snapshot(online));
   { const CNm = CFG.short || CFG.title; if (!String(rec.stage||'').startsWith(CNm + '｜')) rec.stage = CNm + (rec.stage ? '｜' + rec.stage : ''); }
   const body = JSON.stringify(rec);

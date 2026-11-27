@@ -224,8 +224,11 @@ function pump(){
   post(HOOK, outbox.shift()); lastSent = Date.now();
   if (outbox.length) pumpTimer = setTimeout(pump, 1200);
 }
+// 明细表有 5 万行上限：这些动作量大、分析用不到（暂停时长等已汇总在状态快照里），不再单独记一行
+const NO_LOG = new Set(['听完页面','暂停','继续播放','回到测试','学习页面(未听完)']);
 function report(ev, online){
   if (!st.name) return;
+  if (NO_LOG.has(ev.event) && online !== '已离开') return;
   const rec = Object.assign({name:st.name, team:st.team||'', event:'', stage:'', page:'', minutes:0, score:0, total:0, pass:'', relearn:'', detail:'', ts:nowStr(), sid:st.sid, course:CFG.short||CFG.title, date:nowStr().slice(0,10)}, ev, snapshot(online));
   { const CNm = CFG.short || CFG.title; if (!String(rec.stage||'').startsWith(CNm + '｜')) rec.stage = CNm + (rec.stage ? '｜' + rec.stage : ''); }
   const body = JSON.stringify(rec);
@@ -439,7 +442,20 @@ function renderReview(){ window.REVIEW = 1;
   document.querySelectorAll('.rs').forEach(el=>el.onclick=()=>{if(cur)cur.classList.remove('on');cur=el;el.classList.add('on');const p=el.dataset.p;const go=()=>{au.currentTime=+el.dataset.a;au.playbackRate=1.5;au.play();stop=+el.dataset.b;};if(au.dataset.rp!==p){au.dataset.rp=p;au.src=VU('audio/'+p+'.mp3');au.onloadedmetadata=()=>{au.onloadedmetadata=null;go();};}else go();});
   window.scrollTo(0,0);
 }
+// 课程锁：cfg.lock = 口令的哈希。未开放期间只有输入口令的人能进（口令存在本机，输一次即可）
+const lockH = s => { let h = 2166136261; for (const c of s + '|' + CFG.key) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); };
+let UNL = ''; function locked(){ if (!CFG.lock) return false; let ok = UNL; try { ok = localStorage.getItem('unlock_' + CFG.key) || UNL; } catch(e) {} return ok !== CFG.lock; }
+function renderLock(){
+  $('#app').innerHTML = `<section style="max-width:420px;margin:12vh auto;background:#fff;border-radius:16px;padding:28px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.06)">
+    <div style="font-size:40px">🔒</div><h2 style="margin:8px 0">${esc(CFG.title)}</h2>
+    <p class="muted">课程暂未开放，开培时由培训老师统一开放。</p>
+    <input id="lk" type="password" placeholder="管理员口令" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;margin-top:12px;font-size:15px">
+    <button id="lkb" class="btn" style="margin-top:10px;width:100%">进入</button><p id="lkm" class="muted" style="color:#dc2626" hidden>口令不对</p></section>`;
+  const go = () => { const v = $('#lk').value.trim(); if (lockH(v) === CFG.lock) { UNL = CFG.lock; try { localStorage.setItem('unlock_' + CFG.key, CFG.lock); } catch(e) {} render(); } else $('#lkm').hidden = false; };
+  $('#lkb').onclick = go; $('#lk').onkeydown = e => { if (e.key === 'Enter') go(); };
+}
 function render(){
+  if (locked()) return renderLock();
   if (st.view === 'learn') return renderLearn();
   if (st.view === 'quiz') return renderQuiz();
   renderHome();
